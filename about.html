@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!--Swap our for actual link-->
-    <link rel="canonical" href="https://www.company.com">
+    <link rel="canonical" href="https://www.company.com/about">
 
     <meta name="description" content="">
     <meta name="keywords" content="">
@@ -20,7 +20,6 @@
     <meta property="og:image:secure_url" content="/images/social.jpg"/>
 
     <!--Favicons-->
-    <!--Use https://realfavicongenerator.net/ to generate and download your favicons-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v1">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -29,23 +28,17 @@
     <meta name="theme-color" content="#ffffff">
 
     <!-- Preload -->
-    <link rel="preload" as="image" href="/images/landing-m.webp">
+    <link rel="preload" as="image" href="/images/cabinets2-m.jpg">
     <link rel="preload" as="font" type="font/woff2" href="fonts/roboto-v29-latin-regular.woff2" crossorigin>
     <link rel="preload" as="font" type="font/woff2" href="fonts/roboto-v29-latin-700.woff2" crossorigin>
 
-    <link rel="stylesheet" href="/css/critical.css"> <!-- Only above the fold css-->
     <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/about.css">
     <link rel="stylesheet" href="/css/dark.css">
 
-    <!--Defer loading the whole page css-->
-    <link rel="stylesheet" href="/css/local.css" media="print" onload="this.media='all'; this.onload=null;">
+    <!--Put analytics tag here at the bottom to prevent it from render blocking-->
 
-    <!--If the user has javascript disbaled, load this stylesheet-->
-    <noscript>
-        <link rel="stylesheet" href="/css/local.css">
-    </noscript>
-
-    <title>Company Name | What They Do | Town and State</title>
+    <title>Company Name | About Us | Town and State</title>
 </head>
 <body>
     <!--Screen reader skip main nav-->
@@ -75,8 +68,8 @@
             <!--Main Nav-->
             <nav id="navbar-menu">
                 <ul>
-                    <li><a class="active" href="/index.html">Home</a></li>
-                    <li><a href="/about.html">About Us</a></li>
+                    <li><a href="/index.html">Home</a></li>
+                    <li><a class="active" href="/about.html">About Us</a></li>
                     <li><a href="/projects.html">Projects</a></li>
                     <li><a href="/reviews.html">Reviews</a></li>
                     <li><a href="/contact.html">Contact</a></li>
@@ -98,63 +91,19 @@
     </div>
 
     <main id="main">
+
         <!-- ============================================ -->
         <!--                    LANDING                   -->
         <!-- ============================================ -->
     
-        <section id="hero">
-            <div class="hero-content">
-                <div class="heroText">
-                    <!--<h1 id="home-h">Main Keywords of What They Do, And Location If Needed</h1>
-                    <p>
-                        Talk about the other services they do with keywords and locations where they serve.  Try to make this 2-3 lines tall.
-                    </p>
-                    <a class="button-solid" href="/contact.html" target="_blank" rel="noopener">
-                        Main Call To Action
-                    </a>-->
-                </div>
-            </div>
+        <section id="int-hero">
+            <h1 id="home-h">About Us</h1>
             <picture>
-                <source media="(max-width: 600px)" srcset="/images/landing-m.webp">
-                <source media="(min-width: 601px)" srcset="/images/landing.jpg">
-                <img aria-hidden="true" decoding="async" src="/images/landing.jpg" alt="new home" width="275" height="132">
-             </picture>
+                <source media="(max-width: 600px)" srcset="/images/cabinets2-m.jpg">
+                <source media="(min-width: 601px)" srcset="/images/cabinets2.jpg">
+                <img aria-hidden="true" decoding="async" src="/images/cabinets2.jpg" alt="cabinets" width="400" height="662">
+            </picture>
         </section>
-
-        <!-- ============================================ -->
-        <!--                  Services                    -->
-        <!-- ============================================ -->
-
-        <!--<section id="services" class="services">
-            
-            <div class="card">
-                <picture>
-                    <img aria-hidden="true" decoding="async" src="/images/service1.svg" alt="appliance" width="48" height="48">
-                </picture>
-                <h2>Service 1</h2>
-                <p>
-                    Talk about the service with keywords people will be searching for it by. Keep it 1-2 sentences.
-                </p>
-            </div>
-            <div class="card">
-                <picture>
-                    <img aria-hidden="true" decoding="async" src="/images/service2.svg" alt="appliance" width="48" height="48">
-                </picture>
-                <h2>Service 2</h2>
-                <p>
-                    Talk about the service with keywords people will be searching for it by. Keep it 1-2 sentences.
-                </p>
-            </div>
-            <div class="card">
-                <picture>
-                    <img aria-hidden="true" decoding="async" src="/images/service3.svg" alt="appliance" width="48" height="48">
-                </picture>
-                <h2>Service 3</h2>
-                <p>
-                    Talk about the service with keywords people will be searching for it by. Keep it 1-2 sentences.
-                </p>
-            </div>
-        </section>-->
 
         <!-- ============================================ -->
         <!--                   About                      -->
@@ -163,61 +112,12 @@
         <section id="sidebyside" class="sidebyside">
             <div class="container">
                 <div class="content">
-                    <h2 class="title">Trusted home builders for (main city) for over 20 years</h2>
+                    <h2 class="title">Lorem ipsum dolor sit amet consectetur.</h2>
                      <p>
                          Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam debitis dolor consectetur dolorem inventore modi tenetur ex odit, amet beatae ad, doloribus tempora quae ab nulla minus temporibus at veritatis!
                      </p>
                      <p>
-                         <strong>A list if you need it:</strong>
-                      </p>
-                     <ul>
-                        <li>
-                            <img aria-hidden="true" loading="lazy" decoding="async" src="/images/check.svg" alt="check mark" width="20" height="20">
-                            <span>List item about something, this one is going to two lines so you can see what it looks like</span>
-                        </li>
-                        <li>
-                            <img aria-hidden="true" loading="lazy" decoding="async" src="/images/check.svg" alt="check mark" width="20" height="20">
-                            <span>List item about something</span>
-                        </li>
-                        <li>
-                            <img aria-hidden="true" loading="lazy" decoding="async" src="/images/check.svg" alt="check mark" width="20" height="20">
-                            <span>List item about something</span>
-                        </li>
-                        <li>
-                            <img aria-hidden="true" loading="lazy" decoding="async" src="/images/check.svg" alt="check mark" width="20" height="20">
-                            <span>List item about something</span>
-                        </li>
-                        <li>
-                            <img aria-hidden="true" loading="lazy" decoding="async" src="/images/check.svg" alt="check mark" width="20" height="20">
-                            <span>List item about something</span>
-                        </li>
-                    </ul>
-                     <p>
-                         Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium saepe laborum nam consequuntur porro inventore odio? Quod autem alias ratione cum reiciendis qui quaerat, sequi voluptatum voluptatibus, iusto itaque sed ullam. Quis, maiores corrupti. Rerum quo laudantium vero magnam tempora!
-                     </p>
-                     <a class="button-solid" href="/about.html">More About Us</a>
-                </div>
-                <picture class="image-box">
-                     <source media="(max-width: 600px)" srcset="/images/cabinets2-m.jpg">
-                     <source media="(min-width: 601px)" srcset="/images/cabinets2.jpg">
-                     <img aria-hidden="true" loading="lazy" decoding="async" src="/images/cabinets2.jpg" alt="cabinets" width="400" height="662">
-                 </picture>
-            </div>
-       </section>
-
-        <!-- ============================================ -->
-        <!--          Extra Content For Ranking           -->
-        <!-- ============================================ -->
-
-        <section id="sidebyside-reverse">
-            <div class="container">
-                <div class="content">
-                    <h2 class="title">Extra content, maybe talk about a main service</h2>
-                     <p>
-                         Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam debitis dolor consectetur dolorem inventore modi tenetur ex odit, amet beatae ad, doloribus tempora quae ab nulla minus temporibus at veritatis!
-                     </p>
-                     <p>
-                         <strong>A list if you need it:</strong>
+                         <strong>List if you need it:</strong>
                       </p>
                      <ul>
                         <li>
@@ -244,7 +144,7 @@
                      <p>
                          Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium saepe laborum nam consequuntur porro inventore odio? Quod autem alias ratione cum reiciendis qui quaerat, sequi voluptatum voluptatibus, iusto itaque sed ullam. Quis, maiores corrupti. Rerum quo laudantium vero magnam tempora!
                      </p>
-                     <a class="button-solid" href="/contact.html">Get Free Quote</a>
+                     <a class="button-solid" href="/conttact.html">Get Free Quote</a>
                 </div>
                 <picture class="image-box">
                      <source media="(max-width: 600px)" srcset="/images/cabinets2-m.jpg">
@@ -258,13 +158,13 @@
         <!--             Final Call to Action             -->
         <!-- ============================================ -->
 
-        <!--<section id="cta">
+        <section id="cta">
             <div class="container">
                 <h2 class="title">Get It Done <br> With Us Today</h2>
                 <p>
                     Say something catchy, informative, and encouraging to click the button to go to the contact page.  I like to add these to the bottom of all pages.
                 </p>
-                <a href="/contact.html" class="button-solid">Get an Estimate Now</a>
+                <a href="/contact.html" class="button-solid">Free Estimate</a>
             </div>
             <picture>
                 <source media="(max-width: 600px)" srcset="/images/cabinets2-m.webp">
@@ -272,10 +172,11 @@
                 <img aria-hidden="true" loading="lazy" decoding="async" src="/images/cabinets2.jpg" alt="kitchen cabinets" width="1920" height="1280">
              </picture>
         </section>
-    </main>-->
+
+    </main>
 
     <!-- ============================================ -->
-    <!--                     FOOTER                   -->
+    <!--                   Footer                     -->
     <!-- ============================================ -->
 
     <footer id="footer">
@@ -318,7 +219,6 @@
             <a href="" target="_blank" rel="noopener">Your Company Name</a>
             <span class="copyright"> Copyright 2021 - Present</span></div>
     </footer>
-
 
     <script defer src="/nav.js"></script>
     <script defer src="/dark.js"></script>
