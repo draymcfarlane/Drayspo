@@ -52,6 +52,11 @@ jobs:
           else
             echo "No published content yet; using the site's built-in default.json."
           fi
+          if [ -f _content/content/resume.pdf ]; then
+            head -c 5 _content/content/resume.pdf | grep -q '%PDF-' || { echo "::error::content/resume.pdf is not a PDF"; exit 1; }
+            cp _content/content/resume.pdf public/resume.pdf
+            echo "Using the published resume from the content branch."
+          fi
 
       - name: Test
         run: bun run test

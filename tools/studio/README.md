@@ -55,6 +55,7 @@ Nothing reaches the live site until you press **Publish**. The publish workflow 
 - **Thoughts:** use *Estimate minutes from post* for the read time (about 200 words a minute), and *Set link from title* to give the post a readable link (`#thoughts/<id>`).
 - **Music:** paste a playlist link from Apple Music (Share › Copy Link). *Start syncing Apple Music* reads what's playing in the Apple Music app every few seconds and updates the site when the song changes. Album art and the song link come from Apple's public search. When you pause for more than 90 seconds, or close Studio, the site switches to "Not listening right now".
 - **Sections:** tick to show or hide sections, and use the arrows to reorder them. When the site's code gains new fields or sections (after a Lovable change), Studio adds them to your draft automatically, with new sections hidden, and lists them in the log.
+- **Resume:** *Choose new resume PDF…* checks that it's a real PDF with your name in it, sets its title and author to your name (removing Word's "Microsoft Word - ….docx" title and any work sensitivity labels), and makes it the draft. Visitors always download it as `<your name>-Resume.pdf`. Like everything else, it goes live only when you Publish. Publishing also saves it to `public/resume.pdf` on `main` (what GitHub shows) and to the sync overlay, so a Lovable sync never brings the old copy back.
 - **Advanced:** the whole content file as JSON, for anything the tabs don't cover.
 
 ## Notes

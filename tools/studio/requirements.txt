@@ -1,5 +1,6 @@
 requests>=2.31
 keyring>=25
+pypdf>=5
 # Reads "now playing" from the Apple Music app on Windows
 winrt-runtime>=2.0; sys_platform == "win32"
 winrt-Windows.Foundation>=2.0; sys_platform == "win32"

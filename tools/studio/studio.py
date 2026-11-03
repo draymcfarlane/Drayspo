@@ -36,16 +36,24 @@ import tkinter as tk
 import urllib.parse
 import webbrowser
 from pathlib import Path
-from tkinter import colorchooser, messagebox, simpledialog, ttk
+from tkinter import colorchooser, filedialog, messagebox, simpledialog, ttk
 
 import keyring
 import requests
+
+import resume_pdf
 
 APP = "Drayspo Studio"
 KEYRING_SERVICE = "drayspo-studio"
 HOME = Path.home() / ".drayspo-studio"
 SETTINGS_FILE = HOME / "settings.json"
 DRAFT_FILE = HOME / "draft.json"
+RESUME_DRAFT = HOME / "resume-draft.pdf"
+RESUME_DRAFT_PATH, RESUME_LIVE_PATH = "content/resume-draft.pdf", "content/resume.pdf"
+OWNER_NAME = "Dray McFarlane"  # used when the content has no name
+PHOTO_DIR = HOME / "media"     # hero photo drafts, named holo-photo.<ext>
+PHOTO_TYPES = {b"\x89PNG": ".png", b"\xff\xd8\xff": ".jpg", b"RIFF": ".webp"}
+MAX_PHOTO = 6 * 1024 * 1024
 STATE_FILE = HOME / "state.json"
 SITE_DIR = HOME / "site"
 
@@ -101,6 +109,19 @@ def estimate_minutes(text: str) -> int:
     return max(1, round(len(re.findall(r"\S+", text)) / 200))
 
 
+def git_blob_sha(data: bytes) -> str:
+    """The sha GitHub reports for a file with these bytes (skips re-uploading unchanged files)."""
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
+
+def find_resume_link(cfg: dict) -> dict | None:
+    """Same rule as the site's findResumeLink(): a 'resume/cv/pdf' label or a .pdf URL."""
+    for link in cfg.get("content", {}).get("links", []):
+        if re.search(r"resume|cv|pdf", link.get("label", ""), re.I) or re.search(r"\.pdf($|\?)", link.get("url", ""), re.I):
+            return link
+    return None
+
+
 def merge_missing(target, source, hidden_sections=None):
     """Add keys the site's code has but your content doesn't (e.g. after a Lovable change).
     New sections are added hidden, so nothing appears on the page until you switch it on."""
@@ -115,11 +136,15 @@ def merge_missing(target, source, hidden_sections=None):
             added += [f"{k}.{a}" for a in merge_missing(target[k], v)]
     lay, slay = target.get("layout"), source.get("layout")
     if isinstance(lay, dict) and isinstance(slay, dict):
-        for sid in slay.get("sectionOrder", []):
-            if sid not in lay.setdefault("sectionOrder", []):
-                lay["sectionOrder"].append(sid)
-                lay.setdefault("hiddenSections", []).append(sid)
-                added.append(f"section {sid}")
+        src_order = slay.get("sectionOrder", [])
+        for n, sid in enumerate(src_order):
+            order = lay.setdefault("sectionOrder", [])
+            if sid in order:
+                continue
+            before = next((p for p in reversed(src_order[:n]) if p in order), None)
+            order.insert(order.index(before) + 1 if before else 0, sid)
+            lay.setdefault("hiddenSections", []).append(sid)
+            added.append(f"section {sid}")
     return added
 
 
@@ -206,6 +231,31 @@ class GitHub:
             payload["sha"] = sha
         r = self._req("PUT", self._url(f"/contents/{path}"), json=payload)
         return r.json()["content"]["sha"]
+
+    def get_bytes(self, branch: str, path: str):
+        """Returns (bytes, sha) or (None, None). Works for files over 1 MB too."""
+        r = self.s.get(self._url(f"/contents/{path}"), params={"ref": branch}, timeout=30)
+        if r.status_code == 404:
+            return None, None
+        if r.status_code != 200:
+            raise GitHubError(f"Reading {branch}:{path} -> {r.status_code}")
+        sha = r.json()["sha"]
+        raw = self.s.get(self._url(f"/contents/{path}"), params={"ref": branch}, timeout=60,
+                         headers={"Accept": "application/vnd.github.raw+json"})
+        if raw.status_code != 200:
+            raise GitHubError(f"Downloading {branch}:{path} -> {raw.status_code}")
+        return raw.content, sha
+
+    def put_bytes(self, branch: str, path: str, data: bytes, message: str) -> None:
+        """Upload a file unless GitHub already has exactly these bytes."""
+        r = self.s.get(self._url(f"/contents/{path}"), params={"ref": branch}, timeout=30)
+        sha = r.json().get("sha") if r.status_code == 200 else None
+        if sha == git_blob_sha(data):
+            return
+        payload = {"message": message, "branch": branch, "content": base64.b64encode(data).decode()}
+        if sha:
+            payload["sha"] = sha
+        self._req("PUT", self._url(f"/contents/{path}"), json=payload)
 
     def replace_branch(self, branch: str, files: dict[str, object], message: str) -> None:
         """Make `branch` a single parentless commit holding exactly `files`."""
@@ -660,7 +710,7 @@ class Studio(tk.Tk):
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill="both", expand=True, padx=18)
         self.tabs = {}
-        for name in ("Profile", "Sections", "Thoughts", "Projects", "Experience", "Skills", "Music", "Advanced"):
+        for name in ("Profile", "Hero card", "Sections", "Thoughts", "Projects", "Experience", "Skills", "Music", "Resume", "Advanced"):
             f = ttk.Frame(self.nb, padding=16)
             self.nb.add(f, text=name)
             self.tabs[name] = f
@@ -692,6 +742,8 @@ class Studio(tk.Tk):
                    [("category", "Category", "text"), ("items", "Skills (comma separated)", "tags")],
                    "category", lambda: {"category": "New category", "items": []}).pack(fill="both", expand=True)
         self._music_tab(self.tabs["Music"])
+        self._resume_tab(self.tabs["Resume"])
+        self._hero_tab(self.tabs["Hero card"])
         self._advanced_tab(self.tabs["Advanced"])
         self.update_status()
 
@@ -824,6 +876,175 @@ class Studio(tk.Tk):
         ttk.Label(p, text="Songs go live within a few minutes without rebuilding the site. Only the current\n"
                           "song is kept, so your listening history isn't stored.", style="Panel.TLabel").grid(row=4, column=1, sticky="w", pady=(10, 0))
         p.columnconfigure(1, weight=1)
+
+    # ---------------------------------------------------------------- hero card
+    def holo(self) -> dict:
+        h = self.draft["content"].setdefault("holo", {})
+        for k, v in (("photoUrl", "/dray-profile.png"), ("cutout", False), ("label", "Drayspo · ID"),
+                     ("stamp", "KY · 2025"), ("credential", "BSc CS · CAPM")):
+            h.setdefault(k, v)
+        return h
+
+    def photo_file(self) -> Path | None:
+        """The local draft photo the hero card points at, if it's one Studio manages."""
+        m = re.match(r"^/media/(holo-photo\.(?:png|jpg|webp))", self.holo().get("photoUrl", ""))
+        return PHOTO_DIR / m.group(1) if m else None
+
+    def _hero_tab(self, f):
+        h = self.holo()
+        p = ttk.Frame(f, style="Panel.TFrame", padding=18)
+        p.pack(fill="both", expand=True)
+        for i, (k, label) in enumerate([("label", "Top left label"), ("stamp", "Top right stamp"), ("credential", "Credential badge")]):
+            self._field(p, i, label, lambda k=k: h.get(k, ""), lambda v, k=k: h.__setitem__(k, v))
+        ttk.Label(p, text="Photo", style="Panel.TLabel").grid(row=3, column=0, sticky="nw", pady=(18, 6))
+        box = ttk.Frame(p, style="Panel.TFrame")
+        box.grid(row=3, column=1, sticky="w", pady=(18, 6))
+        self.photo_info = ttk.Label(box, text="", style="Panel.TLabel", justify="left")
+        self.photo_info.pack(anchor="w")
+        bar = ttk.Frame(box, style="Panel.TFrame")
+        bar.pack(anchor="w", pady=(10, 0))
+        ttk.Button(bar, text="Choose photo…", style="Accent.TButton", command=self.choose_photo).pack(side="left")
+        self.cutout_var = tk.BooleanVar(value=bool(h.get("cutout")))
+
+        def set_cutout():
+            h["cutout"] = self.cutout_var.get()
+            self.mark_dirty()
+        ttk.Checkbutton(bar, text="Transparent cutout (no background)", variable=self.cutout_var,
+                        command=set_cutout).pack(side="left", padx=12)
+        ttk.Label(p, text="PNG, JPG or WebP, up to 6 MB. A PNG with a transparent background is detected as a cutout.\n"
+                          "Like everything else, the new photo goes live when you Publish.",
+                  style="Panel.TLabel").grid(row=4, column=1, sticky="w", pady=(10, 0))
+        p.columnconfigure(1, weight=1)
+        self.refresh_photo_info()
+
+    def refresh_photo_info(self):
+        if not hasattr(self, "photo_info"):
+            return
+        f = self.photo_file()
+        if f and f.exists():
+            self.photo_info.configure(text=f"Using your uploaded photo ({f.stat().st_size // 1024} KB).")
+        else:
+            self.photo_info.configure(text=f"Using the site's photo: {self.holo().get('photoUrl')}")
+
+    def choose_photo(self):
+        path = filedialog.askopenfilename(title="Choose your hero photo",
+                                          filetypes=[("Images", "*.png *.jpg *.jpeg *.webp")])
+        if not path:
+            return
+        data = Path(path).read_bytes()
+        ext = next((e for sig, e in PHOTO_TYPES.items() if data.startswith(sig)), None)
+        if ext == ".webp" and data[8:12] != b"WEBP":
+            ext = None
+        if not ext:
+            return messagebox.showerror(APP, "That file isn't a PNG, JPG or WebP image.")
+        if len(data) > MAX_PHOTO:
+            return messagebox.showerror(APP, "That photo is over 6 MB. Export a smaller version (about 1200 px tall is plenty).")
+        PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+        for old in PHOTO_DIR.glob("holo-photo.*"):
+            old.unlink()
+        (PHOTO_DIR / f"holo-photo{ext}").write_bytes(data)
+        h = self.holo()
+        h["photoUrl"] = f"/media/holo-photo{ext}?v={resume_pdf.short_hash(data)}"
+        # PNG colour type 6 (RGBA) or 4 (grey + alpha) means it has transparency.
+        h["cutout"] = ext == ".png" and len(data) > 25 and data[25] in (4, 6)
+        self.cutout_var.set(h["cutout"])
+        self.mark_dirty()
+        self.refresh_photo_info()
+        self.log(f"New hero photo ready ({Path(path).name}{', cutout' if h['cutout'] else ''}). Preview it, then Publish.")
+
+    def site_assets(self) -> list[tuple[str, bytes]]:
+        """Files the draft needs on the site: (path under public/, bytes)."""
+        out = []
+        if RESUME_DRAFT.exists():
+            out.append(("resume.pdf", RESUME_DRAFT.read_bytes()))
+        f = self.photo_file()
+        if f and f.exists():
+            out.append((f"media/{f.name}", f.read_bytes()))
+        return out
+
+    # ---------------------------------------------------------------- resume
+    def owner_name(self) -> str:
+        return (self.draft.get("content", {}).get("name") or "").strip() or OWNER_NAME
+
+    def adopt_resume(self, data: bytes, source: str | None):
+        """Store a resume as the local draft. The site's original gets cleaned on first run."""
+        if source == "site":
+            try:
+                data = resume_pdf.clean_resume(data, self.owner_name())
+                self.log("Cleaned the site's resume: title set to your name, Word and work labels removed.")
+            except resume_pdf.ResumeError as e:
+                self.log(f"Kept the site's resume as it is: {e}")
+        RESUME_DRAFT.write_bytes(data)
+        self.point_link_at(data)
+
+    def point_link_at(self, data: bytes):
+        """Point the resume link at this exact version, so browsers never serve an old copy."""
+        link = find_resume_link(self.draft)
+        if link is None:
+            link = {"label": "Resume PDF", "url": ""}
+            self.draft["content"].setdefault("links", []).append(link)
+        url = f"/resume.pdf?v={resume_pdf.short_hash(data)}"
+        if link.get("url") != url:
+            link["url"] = url
+            self.mark_dirty()
+
+    def _resume_tab(self, f):
+        p = ttk.Frame(f, style="Panel.TFrame", padding=18)
+        p.pack(fill="both", expand=True)
+        ttk.Label(p, text="The PDF visitors download. It's always saved as “<your name>-Resume.pdf”, and its title is set to your name.",
+                  style="Panel.TLabel").pack(anchor="w")
+        self.resume_info = ttk.Label(p, text="", style="Panel.TLabel", justify="left")
+        self.resume_info.pack(anchor="w", pady=(14, 14))
+        bar = ttk.Frame(p, style="Panel.TFrame")
+        bar.pack(anchor="w")
+        ttk.Button(bar, text="Choose new resume PDF…", style="Accent.TButton", command=self.choose_resume).pack(side="left")
+        ttk.Button(bar, text="Open draft resume", command=self.open_resume).pack(side="left", padx=8)
+        ttk.Label(p, text="New resumes are a draft until you Publish. Preview shows the draft.",
+                  style="Panel.TLabel").pack(anchor="w", pady=(14, 0))
+        self.refresh_resume_info()
+
+    def refresh_resume_info(self):
+        if not hasattr(self, "resume_info"):
+            return
+        if not RESUME_DRAFT.exists():
+            self.resume_info.configure(text="No resume yet. Connect to GitHub to load the current one, or choose a PDF.")
+            return
+        try:
+            info = resume_pdf.inspect(RESUME_DRAFT.read_bytes())
+        except Exception as e:
+            self.resume_info.configure(text=f"The draft resume can't be read: {e}")
+            return
+        name = self.owner_name()
+        found = name.split()[-1].lower() in info["text"].lower()
+        file_name = re.sub(r"\s+", "-", re.sub(r"[^A-Za-z0-9\s-]", "", name).strip()) + "-Resume.pdf"
+        self.resume_info.configure(text=(
+            f"Title: {info['title'] or '(none)'}\n"
+            f"Pages: {info['pages']}   ·   Size: {info['bytes'] // 1024} KB\n"
+            f"Downloads as: {file_name}\n"
+            f"{'✓ Your name appears in the resume' if found else '⚠ Your name was not found in the text'}"))
+
+    def choose_resume(self):
+        path = filedialog.askopenfilename(title="Choose your resume", filetypes=[("PDF files", "*.pdf")])
+        if not path:
+            return
+        try:
+            data = resume_pdf.clean_resume(Path(path).read_bytes(), self.owner_name())
+        except resume_pdf.ResumeError as e:
+            return messagebox.showerror(APP, str(e))
+        except Exception as e:
+            return messagebox.showerror(APP, f"That PDF couldn't be read: {e}")
+        RESUME_DRAFT.write_bytes(data)
+        self.point_link_at(data)
+        self.refresh_resume_info()
+        self.log(f"New resume ready ({Path(path).name}). Preview it, then Publish.")
+
+    def open_resume(self):
+        if not RESUME_DRAFT.exists():
+            return
+        if os.name == "nt":
+            os.startfile(RESUME_DRAFT)  # type: ignore[attr-defined]
+        else:
+            webbrowser.open(RESUME_DRAFT.as_uri())
 
     def _advanced_tab(self, f):
         ttk.Label(f, text="Everything in one place. Edit carefully. Preview checks it before anything can ship.",
@@ -962,7 +1183,21 @@ class Studio(tk.Tk):
         draft, dsha = gh.get_json(s["content_branch"], "content/draft.json")
         live, lsha = gh.get_json(s["content_branch"], "content/live.json")
         site_default, _ = gh.get_json(s["site_branch"], "src/config/default.json")
-        return draft, dsha, live, lsha, site_default
+        resume, source = None, None
+        for branch, path, src in ((s["content_branch"], RESUME_DRAFT_PATH, "draft"),
+                                  (s["content_branch"], RESUME_LIVE_PATH, "live"),
+                                  (s["site_branch"], "public/resume.pdf", "site")):
+            resume, _ = gh.get_bytes(branch, path)
+            if resume:
+                source = src
+                break
+        photo = None
+        m = re.match(r"^/media/(holo-photo\.(?:png|jpg|webp))", ((draft or {}).get("content", {}).get("holo") or {}).get("photoUrl", ""))
+        if m and not (PHOTO_DIR / m.group(1)).exists():
+            blob, _ = gh.get_bytes(s["content_branch"], f"content/{m.group(1)}")
+            if blob:
+                photo = (m.group(1), blob)
+        return draft, dsha, live, lsha, site_default, (resume, source), photo
 
     def pull(self, force: bool):
         if not self.gh:
@@ -970,7 +1205,10 @@ class Studio(tk.Tk):
         local_changes = fingerprint(self.draft) != self.sync.get("remote_draft_fp") and DRAFT_FILE.exists()
 
         def done(res):
-            draft, dsha, live, lsha, site_default = res
+            draft, dsha, live, lsha, site_default, (resume, source), photo = res
+            if photo:
+                PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+                (PHOTO_DIR / photo[0]).write_bytes(photo[1])
             self.sync.update({"draft_sha": dsha, "live_sha": lsha,
                                "remote_draft_fp": fingerprint(ensure_shape(copy.deepcopy(draft))) if draft else None,
                                "live_fp": fingerprint(ensure_shape(copy.deepcopy(live))) if live else None})
@@ -983,17 +1221,29 @@ class Studio(tk.Tk):
                 else:
                     added = merge_missing(draft, site_default)
                 if added:
-                    self.log("New from the site's code (sections start hidden): " + ", ".join(added))
+                    self.log("New from the site's code: " + ", ".join(added))
+                    target = self.draft if (local_changes and not force) else draft
+                    new_sections = [a.split(" ", 1)[1] for a in added if a.startswith("section ")]
+                    if new_sections:
+                        names = ", ".join(SECTION_LABELS.get(x, x) for x in new_sections)
+                        if messagebox.askyesno(APP, f"Your site has new sections: {names}.\n\nShow them on the page? "
+                                                    "(You can change this any time in the Sections tab.)"):
+                            hidden = target["layout"]["hiddenSections"]
+                            target["layout"]["hiddenSections"] = [x for x in hidden if x not in new_sections]
                     if local_changes and not force:
                         self.mark_dirty()
                         self.build_tabs()
             if local_changes and not force:
+                if resume and not RESUME_DRAFT.exists():
+                    self.adopt_resume(resume, source)
                 self.log("You have local changes, so the GitHub draft wasn't loaded. Use Pull latest to replace them.")
                 return
             if local_changes and force and not messagebox.askyesno(APP, "Replace your local changes with the draft on GitHub?"):
                 return
             self.draft = ensure_shape(draft)
             save_json(DRAFT_FILE, self.draft)
+            if resume:
+                self.adopt_resume(resume, source)  # the site's original is cleaned on first run
             self.build_tabs()
             self.log("Loaded the latest draft from GitHub.")
         self.run_bg("Checking GitHub for the latest content", self._fetch_remote, done)
@@ -1008,8 +1258,14 @@ class Studio(tk.Tk):
         if not self.gh:
             return messagebox.showinfo(APP, "Connect to GitHub first.")
         s, data = self.settings, copy.deepcopy(self.draft)
+        f = self.photo_file()
+        photo = (f.name, f.read_bytes()) if f and f.exists() else None
 
         def go():
+            if RESUME_DRAFT.exists():
+                self.gh.put_bytes(s["content_branch"], RESUME_DRAFT_PATH, RESUME_DRAFT.read_bytes(), "Update draft resume from Studio")
+            if photo:
+                self.gh.put_bytes(s["content_branch"], f"content/{photo[0]}", photo[1], "Update draft photo from Studio")
             _, sha = self.gh.get_json(s["content_branch"], "content/draft.json")
             return self.gh.put_json(s["content_branch"], "content/draft.json", data, sha, "Update draft from Studio")
 
@@ -1022,12 +1278,17 @@ class Studio(tk.Tk):
     # ---------------------------------------------------------------- preview & publish
     def open_preview(self):
         data = copy.deepcopy(self.draft)
+        assets = self.site_assets()
 
         def go():
             self.preview.check_tools()
             if not self.preview.running:
                 self.preview.sync_code()
             msg = self.preview.write_content(data)
+            for rel, blob in assets:
+                target = SITE_DIR / "public" / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(blob)
             self.log(msg)
             self.preview.start()
             return self.preview.url
@@ -1043,8 +1304,23 @@ class Studio(tk.Tk):
         if not messagebox.askyesno(APP, "Publish your draft to drayspo.com?\n\nThis saves the draft, marks it live and starts the publish workflow."):
             return
         s, data = self.settings, copy.deepcopy(self.draft)
+        assets = self.site_assets()
 
         def go():
+            if RESUME_DRAFT.exists():
+                pdf = RESUME_DRAFT.read_bytes()
+                self.gh.put_bytes(s["content_branch"], RESUME_DRAFT_PATH, pdf, "Update draft resume from Studio")
+                self.gh.put_bytes(s["content_branch"], RESUME_LIVE_PATH, pdf, "Publish resume from Studio")
+                # Keep the repo itself showing the published resume: public/ for GitHub today,
+                # the sync overlay so Lovable's copy never replaces it on the next sync.
+                for path in ("public/resume.pdf", "tools/upstream-sync/overlay/public/resume.pdf"):
+                    self.gh.put_bytes(s["site_branch"], path, pdf, "Update resume (published from Studio)")
+            for rel, blob in assets:
+                if not rel.startswith("media/"):
+                    continue
+                self.gh.put_bytes(s["content_branch"], f"content/{rel.split('/')[-1]}", blob, "Update draft photo from Studio")
+                for path in (f"public/{rel}", f"tools/upstream-sync/overlay/public/{rel}"):
+                    self.gh.put_bytes(s["site_branch"], path, blob, "Update hero photo (published from Studio)")
             _, dsha = self.gh.get_json(s["content_branch"], "content/draft.json")
             dsha = self.gh.put_json(s["content_branch"], "content/draft.json", data, dsha, "Update draft from Studio")
             _, lsha = self.gh.get_json(s["content_branch"], "content/live.json")
