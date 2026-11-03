@@ -28,6 +28,8 @@
       "experience",
       "projects",
       "github",
+      "music",
+      "thoughts",
       "skills",
       "contact"
     ],
@@ -50,7 +52,7 @@
       },
       {
         "label": "Resume PDF",
-        "url": "/resume.pdf"
+        "url": "/resume.pdf?v=4afccf7374"
       }
     ],
     "about": "I'm Dray, a junior software developer who enjoys turning ideas into useful web and mobile apps. I graduated from the University College of the Cayman Islands in June 2025 with a Bachelor of Science in Computer Science (3.50 GPA) and earned my CAPM (Certified Associate in Project Management) in April 2025. Each role so far has added something new to my toolkit, from databases and CI/CD to mobile development, and I'm a quick learner who loves picking up the next technology.",
@@ -157,9 +159,21 @@
     ],
     "thoughts": [],
     "music": {
-      "playlistUrl": "",
-      "playlistName": "",
-      "nowPlaying": null
+      "playlistUrl": "https://music.apple.com/us/playlist/all-starjunk-95/pl.u-xlyNJ2XtkzWd03V",
+      "playlistName": "All Starjunk 95",
+      "nowPlaying": null,
+      "nowPlayingUrl": "https://raw.githubusercontent.com/draymcfarlane/Drayspo/now-playing/now-playing.json"
+    },
+    "holo": {
+      "photoUrl": "/dray-profile.png",
+      "cutout": false,
+      "label": "Drayspo · ID",
+      "stamp": "KY · 2025",
+      "credential": "BSc CS · CAPM"
+    },
+    "brand": {
+      "strong": "Dray’s Po",
+      "tail": "rtfolio"
     }
   },
   "polling": {
