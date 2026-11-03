@@ -56,6 +56,7 @@ export const configSchema = z.object({
       .object({
         playlistUrl: z.string().default(""),
         playlistName: z.string().default(""),
+        nowPlayingUrl: z.string().default(""),
         nowPlaying: z
           .object({
             isPlaying: z.boolean(),
@@ -69,7 +70,7 @@ export const configSchema = z.object({
           .nullable()
           .default(null),
       })
-      .default({ playlistUrl: "", playlistName: "", nowPlaying: null }),
+      .default({ playlistUrl: "", playlistName: "", nowPlayingUrl: "", nowPlaying: null }),
     thoughts: z
       .array(
         z.object({

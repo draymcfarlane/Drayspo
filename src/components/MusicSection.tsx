@@ -5,15 +5,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Music2 } from "lucide-react";
 import { useConfig } from "@/config/ConfigProvider";
 import { Button } from "@/components/ui/button";
-import { musicEmbedUrl, safeMusicLink } from "@/lib/music";
+import { musicEmbedUrl, safeMusicLink, useNowPlaying } from "@/lib/music";
 
 // Vinyl-styled playlist section with a safe embed and outbound link.
 export function Music() {
   const { config, intensity } = useConfig();
   const ready = useAppReady();
-  const music = config.content.music,
-    playing = Boolean(music.nowPlaying?.isPlaying);
-  const np = music.nowPlaying,
+  const music = config.content.music;
+  const np = useNowPlaying(music.nowPlayingUrl, music.nowPlaying),
+    playing = Boolean(np?.isPlaying);
+  const
     embed = musicEmbedUrl(music.playlistUrl);
   const artwork = playing ? safeMusicLink(np?.artworkUrl) : undefined;
   const trackUrl = safeMusicLink(np?.url);
