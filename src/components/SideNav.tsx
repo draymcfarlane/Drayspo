@@ -2,55 +2,34 @@ import { useEffect, useRef, useState } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { visibleSections } from "@/config/schema";
 import { GooIndicator } from "@/components/GooIndicator";
+import { useAppReady } from "@/lib/app-ready";
+import { ChevronDown, Menu, X } from "lucide-react";
 
-const LABELS: Record<string, string> = { hero: "Home", about: "About", experience: "Experience", projects: "Projects", github: "GitHub", skills: "Skills", contact: "Contact" };
+// Display labels for each section id.
+const LABELS: Record<string, string> = { hero: "Home", about: "About", experience: "Experience", projects: "Projects", github: "GitHub", music: "Music", thoughts: "Thoughts", skills: "Skills", contact: "Contact" };
 
-export function SideNav({ introEnabled = true }: { introEnabled?: boolean }) {
+// The burger only exists on mobile (< 48rem); tablet and above always show the nav.
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 47.999rem)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return isMobile;
+}
+
+// Section navigation with scroll spy, a wave idle motion and a mobile-only menu.
+export function SideNav() {
+  const ready = useAppReady();
   const { config, intensity } = useConfig();
   const ids = visibleSections(config);
   const [active, setActive] = useState("hero");
   const [pill, setPill] = useState({ top: 0, h: 0, o: 0 });
   const drag = useRef<{ y: number; s: number } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [heroBubbleReady, setHeroBubbleReady] = useState(!introEnabled);
-
-  // After the intro finishes, fly a clone of the hero name over to the "Home" bubble.
-  useEffect(() => {
-    if (!introEnabled || !intensity || window.innerWidth < 768 || !ids.includes("hero")) { setHeroBubbleReady(true); return; }
-    let clone: HTMLElement | null = null;
-    let delay: ReturnType<typeof setTimeout> | undefined;
-    const fly = () => {
-      const hero = document.querySelector<HTMLElement>(".hero-name");
-      const target = document.querySelector<HTMLElement>('[data-flight-target="hero"]');
-      if (!hero || !target) { setHeroBubbleReady(true); return; }
-      const h = hero.getBoundingClientRect(), t = target.getBoundingClientRect();
-      clone = document.createElement("div");
-      clone.className = "hero-name hero-name-flight";
-      clone.textContent = config.content.name;
-      clone.style.left = `${h.left}px`;
-      clone.style.top = `${h.top}px`;
-      clone.style.width = `${h.width}px`;
-      clone.style.fontSize = getComputedStyle(hero).fontSize;
-      document.body.appendChild(clone);
-      const scale = Math.max(0.1, t.height / h.height);
-      const dx = t.left + t.width / 2 - (h.left + h.width / 2);
-      const dy = t.top + t.height / 2 - (h.top + h.height / 2);
-      const anim = clone.animate(
-        [
-          { transform: "translate(0, 0) scale(1)", opacity: 1, offset: 0 },
-          { transform: `translate(${dx * 0.3}px, ${dy * 0.3}px) scale(0.22)`, opacity: 0.85, offset: 0.42 },
-          { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 0.5, offset: 1 },
-        ],
-        { duration: 900, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "forwards" },
-      );
-      anim.onfinish = () => { clone?.remove(); clone = null; setHeroBubbleReady(true); };
-    };
-    const onIntro = () => { delay = setTimeout(fly, 450); };
-    window.addEventListener("app:intro-done", onIntro, { once: true });
-    const cap = setTimeout(onIntro, 5000);
-    return () => { window.removeEventListener("app:intro-done", onIntro); clearTimeout(cap); if (delay) clearTimeout(delay); clone?.remove(); };
-  }, [introEnabled, intensity, config.content.name, ids.join()]);
-
   useEffect(() => {
     const update = () => {
       const d = document.documentElement;
@@ -64,7 +43,8 @@ export function SideNav({ introEnabled = true }: { introEnabled?: boolean }) {
       const o = Math.min(1, edge / 0.2);
       setPill({ h, top: max > 0 ? (window.scrollY / max) * (vh - h) : 0, o });
       // At the very bottom, the last section wins even if it's too short to reach the spy line.
-      if (window.scrollY + vh >= total - 8 && ids.length) setActive(ids[ids.length - 1]!);
+      const last = ids.at(-1);
+      if (window.scrollY + vh >= total - 8 && last) setActive(last);
     };
     let queued = 0;
     const onScroll = () => { if (!queued) queued = requestAnimationFrame(() => { queued = 0; update(); }); };
@@ -84,19 +64,39 @@ export function SideNav({ introEnabled = true }: { introEnabled?: boolean }) {
   }, [ids.join()]);
 
   const navRef = useRef<HTMLElement>(null);
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+  const [atTop, setAtTop] = useState(true);
+  useEffect(() => {
+    const on = () => setAtTop(window.scrollY < 40);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
 
-  const go = (id: string) => (e: React.MouseEvent) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: intensity === 0 ? "auto" : "smooth" }); };
+  const go = (id: string) => (e: React.MouseEvent) => { e.preventDefault(); if (isMobile) setOpen(false); document.getElementById(id)?.scrollIntoView({ behavior: intensity === 0 ? "auto" : "smooth" }); };
 
   return (
     <>
-      <nav ref={navRef} className="side-nav hidden md:flex" aria-label="Quick links" data-motion={intensity > 0}>
-        <GooIndicator container={navRef} activeKey={active} motion={intensity > 0} hidden={active === "hero" && !heroBubbleReady} />
-        {ids.map((id) => (
+      <button
+        type="button" className="nav-burger" aria-expanded={open} aria-controls="quick-links"
+        aria-label={open ? "Close section menu" : "Open section menu"} onClick={() => setOpen((o) => !o)}
+      >
+        <span className="nav-burger-icon" data-shown={!open}><Menu aria-hidden="true" /></span>
+        <span className="nav-burger-icon" data-shown={open}><X aria-hidden="true" /></span>
+      </button>
+      {ids.length > 1 && (
+        <div className="scroll-cue md:hidden" data-hidden={!atTop} aria-hidden="true">
+          <ChevronDown aria-hidden="true" />
+        </div>
+      )}
+      <nav id="quick-links" ref={navRef} className="side-nav" aria-label="Quick links" data-motion={ready && intensity > 0} data-open={open} inert={isMobile && !open}>
+        <GooIndicator container={navRef} activeKey={active} motion={ready && intensity > 0} bobDelay={`${-Math.max(0, (ids as string[]).indexOf(active)) * 0.35}s`} />
+        {ids.map((id, i) => (
           <a
             key={id} data-goo-key={id} href={`#${id}`} onClick={go(id)} className="nav-bubble" data-active={active === id}
             aria-current={active === id ? "location" : undefined}
-            data-flight-target={id === "hero" ? "hero" : undefined}
-            style={{ visibility: id === "hero" && !heroBubbleReady ? "hidden" : undefined }}
+            style={{ ["--bob-delay" as string]: `${-i * 0.35}s` }}
           >
             {LABELS[id] ?? id}
           </a>

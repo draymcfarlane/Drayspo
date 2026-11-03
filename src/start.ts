@@ -2,6 +2,7 @@ import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/r
 
 import { renderErrorPage } from "./lib/error-page";
 
+// Logs unhandled server errors and returns a generic error page instead of leaking internals.
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
     return await next();
@@ -24,6 +25,7 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
+// Registers the global request middleware for the app.
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware, csrfMiddleware],
 }));

@@ -35,6 +35,7 @@ export async function loadResume(url: string): Promise<Blob> {
   return new Blob([buffer], { type: "application/pdf" });
 }
 
+// Triggers a browser download for a blob.
 export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

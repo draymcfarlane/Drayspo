@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { deliverFile, loadResume, resumeFileName } from "@/lib/resume";
 
 /**
@@ -12,7 +13,7 @@ import { deliverFile, loadResume, resumeFileName } from "@/lib/resume";
 export function ResumeButton({
   url,
   name,
-  className = "ghost-btn inline-flex items-center gap-2",
+  className = "",
 }: {
   url: string;
   name: string;
@@ -60,17 +61,16 @@ export function ResumeButton({
   const label = loading ? "Opening…" : error ? "Try again" : "Download PDF resume";
 
   return (
-    <a
+    <Button asChild variant="quiet" size="portfolio" className={className}><a
       href={url}
       onClick={onClick}
       onPointerEnter={prefetch}
       onFocus={prefetch}
-      className={className}
       aria-live="polite"
       aria-busy={loading}
     >
       <Download size={16} aria-hidden="true" />
       {label}
-    </a>
+    </a></Button>
   );
 }

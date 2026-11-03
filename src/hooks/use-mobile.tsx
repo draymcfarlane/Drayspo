@@ -1,7 +1,9 @@
 import * as React from "react";
 
+// Width in pixels below which the layout is treated as mobile.
 const MOBILE_BREAKPOINT = 768;
 
+// Tracks whether the viewport is below the mobile breakpoint.
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 

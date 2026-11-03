@@ -1,3 +1,4 @@
+// Static HTML shown when server rendering fails outright.
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">

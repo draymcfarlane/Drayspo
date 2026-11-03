@@ -1,12 +1,18 @@
+import { copyText } from "@/lib/copy-text";
+import { LiquidBlock, LiquidDrop, LiquidGroup, LiquidLine, LiquidText } from "./Liquid";
+import { useAppReady } from "@/lib/app-ready";
+import { Button } from "@/components/ui/button";
+import { TypedHeading } from "./TypedHeading";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Check, Copy, Diamond } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { findResumeLink } from "@/config/schema";
 import { ResumeButton } from "@/components/ResumeButton";
-const photo = { url: "/dray-profile.png" };
+import { HoloCard } from "@/components/HoloCard";
 import { GitHubActivity } from "@/components/GitHubActivity";
 
+// SVG filter definitions shared by the gooey highlights.
 export function GooeyDefs() {
   return (
     <svg aria-hidden="true" width="0" height="0" className="absolute">
@@ -32,79 +38,81 @@ export function GooeyDefs() {
   );
 }
 
+// Standard section wrapper with an optional typed heading.
 function Section({ id, title, children }: { id: string; title?: string; children: ReactNode }) {
-  const { intensity } = useConfig();
   return (
     <section id={id} aria-labelledby={title ? `${id}-h` : undefined} className="section">
       {title && (
-        <motion.h2
-          id={`${id}-h`}
-          className="section-title"
-          initial={intensity ? { opacity: 0, y: 24 * intensity } : false}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-10%" }}
-          transition={{ duration: 0.6 }}
-        >
-          {title}
-        </motion.h2>
+        <TypedHeading id={`${id}-h`} text={title} />
       )}
       {children}
     </section>
   );
 }
 
+// Opening section with name, role, photo card and primary actions.
 export function Hero() {
   const { config, intensity } = useConfig();
   const c = config.content;
+  const brand = c.brand ?? { strong: "Dray’s Po", tail: "rtfolio" };
   const resume = findResumeLink(config);
+  const ready = useAppReady();
   return (
-    <section id="hero" className="section min-h-[92svh] justify-center" aria-label="Introduction">
-      <motion.div className="hero-photo mb-6" initial={intensity ? { opacity: 0, scale: 0.8 } : false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7 }}>
-        <img src={photo.url} alt={`Portrait of ${c.name}`} width={176} height={176} decoding="async" fetchPriority="high" />
-      </motion.div>
-      <p className="eyebrow">{c.location}</p>
-      <h1 className="hero-name">{c.name}<span className="sr-only"> — {c.title}</span></h1>
-      <motion.p className="hero-title" initial={intensity ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }}>
-        {c.title}
-      </motion.p>
-      <p className="hero-tagline">{c.tagline}</p>
-      <div className="mt-10 flex flex-wrap gap-3">
-        <a href="#contact" className="liquid-btn"><span>Get in touch</span><ArrowRight size={18} strokeWidth={2.25} aria-hidden="true" /></a>
-        {resume && <ResumeButton url={resume.url} name={c.name} />}
+    <LiquidGroup as="section" id="hero" className="section hero-layout" aria-label="Introduction">
+      <div className="hero-copy">
+      <LiquidLine as="p" className="hero-brand">
+        <span className="sr-only">{brand.strong + brand.tail}</span>
+        <span aria-hidden="true" className="hero-brand-strong">{brand.strong}</span>
+        <span aria-hidden="true" className="hero-brand-tail">{brand.tail}</span>
+      </LiquidLine>
+      <LiquidText className="eyebrow" text={c.location} delay={60} />
+      <h1 className="hero-name" data-name-ready={ready}>
+        {c.name.split(/\s+/).map((word, i, words) => <span data-name-word key={i}>{word}{i < words.length - 1 ? " " : ""}</span>)}
+        <span className="sr-only"> — {c.title}</span>
+      </h1>
+      <LiquidText className="hero-title" text={c.title} delay={160} />
+      <LiquidText className="hero-tagline" text={c.tagline} delay={280} />
+      <LiquidGroup delay={440} className="mt-10 action-row">
+        <LiquidDrop className="action-slot"><Button asChild variant="liquid" size="portfolio"><a href="#contact" onClick={(event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          const contact = document.getElementById("contact");
+          if (!contact) return;
+          event.preventDefault();
+          // Let the page's smooth-scroll controller handle anchors when active;
+          // starting a native scroll alongside it can cancel the animation.
+          if (document.documentElement.classList.contains("lenis")) {
+            window.dispatchEvent(new CustomEvent("app:scroll-to-section", { detail: contact }));
+          } else {
+            contact.scrollIntoView({ behavior: intensity > 0 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto", block: "start" });
+          }
+          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#contact`);
+        }}><span>Get in touch</span><ArrowRight size={18} strokeWidth={2.25} aria-hidden="true" /></a></Button></LiquidDrop>
+        {resume && <LiquidDrop index={1} className="action-slot"><ResumeButton url={resume.url} name={c.name} /></LiquidDrop>}
+      </LiquidGroup>
       </div>
-    </section>
+      <HoloCard />
+    </LiquidGroup>
   );
 }
 
+// Short biography section.
 export function About() {
-  const { config, intensity } = useConfig();
-  const words = config.content.about.split(" ");
+  const { config } = useConfig();
   return (
     <Section id="about" title="About">
-      <p className="about-text">
-        {words.map((w, i) => (
-          <motion.span
-            key={i}
-            className="inline-block mr-[0.28em]"
-            initial={intensity ? { opacity: 0.15, filter: `blur(${6 * intensity}px)` } : false}
-            whileInView={{ opacity: 1, filter: "blur(0px)" }}
-            viewport={{ once: true, margin: "-15%" }}
-            transition={{ duration: 0.5, delay: Math.min(i * 0.012, 1) }}
-          >
-            {w}
-          </motion.span>
-        ))}
-      </p>
+      <LiquidText className="about-text" text={config.content.about} stagger={110} />
     </Section>
   );
 }
 
+// Timeline of roles and responsibilities.
 export function Experience() {
   const { config, intensity } = useConfig();
+  const ready = useAppReady();
   const line = useRef<HTMLDivElement>(null);
   const wrap = useRef<HTMLOListElement>(null);
   useEffect(() => {
-    if (!line.current || !wrap.current) return;
+    if (!ready || !line.current || !wrap.current) return;
     if (!intensity) { line.current.style.transform = "scaleY(1)"; return; }
     let ctx: { revert: () => void } | undefined;
     (async () => {
@@ -116,34 +124,28 @@ export function Experience() {
       });
     })();
     return () => ctx?.revert();
-  }, [intensity, config.content.experience.length]);
+  }, [ready, intensity, config.content.experience.length]);
   return (
     <Section id="experience" title="Experience">
       <ol ref={wrap} className="relative pl-8 md:pl-12">
         <div className="timeline-track" aria-hidden="true"><div ref={line} className="timeline-line" /></div>
         {config.content.experience.map((e, i) => (
-          <motion.li
-            key={i}
-            className="relative pb-12 last:pb-0"
-            initial={intensity ? { opacity: 0, x: 30 * intensity } : false}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="timeline-dot" aria-hidden="true" />
-            <p className="eyebrow">{e.start} — {e.end}</p>
-            <h3 className="text-xl md:text-2xl font-heading font-bold">{e.role}</h3>
-            <p className="text-muted-foreground mb-3">{e.company}</p>
+          <LiquidGroup as="li" key={i} className="relative pb-12 last:pb-0">
+            <LiquidDrop className="timeline-dot" aria-hidden="true" />
+            <LiquidLine as="p" className="eyebrow">{e.start} — {e.end}</LiquidLine>
+            <LiquidLine as="h3" index={1} className="text-xl md:text-2xl font-heading font-bold">{e.role}</LiquidLine>
+            <LiquidLine as="p" index={2} className="text-muted-foreground mb-3">{e.company}</LiquidLine>
             <ul className="space-y-1.5 text-foreground/85">
-              {e.highlights.filter(Boolean).map((h, j) => <li key={j} className="flex gap-2"><Diamond size={9} className="text-accent shrink-0 mt-[6px]" fill="currentColor" aria-hidden="true" />{h}</li>)}
+              {e.highlights.filter(Boolean).map((h, j) => <LiquidLine as="li" index={j + 3} key={j} innerClassName="flex gap-2"><Diamond size={9} className="text-accent shrink-0 mt-[6px]" fill="currentColor" aria-hidden="true" />{h}</LiquidLine>)}
             </ul>
-          </motion.li>
+          </LiquidGroup>
         ))}
       </ol>
     </Section>
   );
 }
 
+// Project card with tags and links pinned to the bottom.
 function ProjectCard({ p, i }: { p: { name: string; description: string; tech: string[]; url: string; repo: string }; i: number }) {
   const { config, intensity } = useConfig();
   const mx = useMotionValue(0);
@@ -156,6 +158,7 @@ function ProjectCard({ p, i }: { p: { name: string; description: string; tech: s
   const ty = useTransform(sy, (v) => v * 8 * intensity);
   const on = config.animation.enableCursorEffects && intensity > 0;
   return (
+    <LiquidBlock index={i} className="h-full">
     <motion.article
       className="project-card group"
       style={on ? { rotateX: rotX, rotateY: rotY, x: tx, y: ty, transformPerspective: 900 } : {}}
@@ -166,15 +169,11 @@ function ProjectCard({ p, i }: { p: { name: string; description: string; tech: s
         my.set((e.clientY - r.top) / r.height - 0.5);
       }}
       onPointerLeave={() => { mx.set(0); my.set(0); }}
-      initial={intensity ? { opacity: 0, y: 40 * intensity } : false}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-10%" }}
-      transition={{ duration: 0.6, delay: i * 0.08 }}
     >
       <div className="card-goo" aria-hidden="true"><span /><span /><span /></div>
       <div className="relative flex flex-1 flex-col">
-        <h3 className="text-2xl font-heading font-bold mb-2">{p.name}</h3>
-        <p className="text-foreground/80 mb-5">{p.description}</p>
+        <LiquidText as="h3" className="text-2xl font-heading font-bold mb-2" text={p.name} />
+        <LiquidText className="text-foreground/80 mb-5" text={p.description} delay={150} />
         <div className="mt-auto">
         <ul className="flex flex-wrap gap-2 mb-6" aria-label="Technologies">
           {p.tech.filter(Boolean).map((t) => <li key={t} className="tag">{t}</li>)}
@@ -186,9 +185,11 @@ function ProjectCard({ p, i }: { p: { name: string; description: string; tech: s
         </div>
       </div>
     </motion.article>
+    </LiquidBlock>
   );
 }
 
+// Grid of featured projects.
 export function Projects() {
   const { config } = useConfig();
   return (
@@ -200,6 +201,7 @@ export function Projects() {
   );
 }
 
+// Section wrapper for the live GitHub activity widget.
 export function GitHub() {
   const { config } = useConfig();
   const gh = config.content.links.find((l) => /github\.com/i.test(l.url));
@@ -212,58 +214,64 @@ export function GitHub() {
   );
 }
 
+// Grouped skill pills.
 export function Skills() {
   const { config, intensity } = useConfig();
   return (
     <Section id="skills" title="Skills">
       <div className="grid gap-10 md:grid-cols-3">
         {config.content.skills.map((s, i) => (
-          <div key={s.category + i}>
-            <h3 className="eyebrow mb-4">{s.category}</h3>
+          <LiquidGroup key={s.category + i} delay={i * 160}>
+            <LiquidLine as="h3" className="eyebrow mb-4">{s.category}</LiquidLine>
             <ul className="flex flex-wrap gap-2.5">
               {s.items.filter(Boolean).map((it, j) => (
-                <motion.li
+                <LiquidDrop as="li" index={j + 2}
                   key={it}
                   className="pill"
-                  initial={intensity ? { opacity: 0, x: (j % 2 ? 1 : -1) * 60 * intensity, y: (j % 3 - 1) * 50 * intensity, scale: 0.6 } : false}
-                  whileInView={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                  viewport={{ once: true, margin: "-10%" }}
-                  transition={{ type: "spring", stiffness: 90, damping: 12, delay: j * 0.05 }}
                   style={(intensity ? { animation: `float ${4 + (j % 3)}s ease-in-out ${j * 0.3}s infinite`, "--float": `${4 * intensity}px` } : {}) as React.CSSProperties as never}
                 >
                   {it}
-                </motion.li>
+                </LiquidDrop>
               ))}
             </ul>
-          </div>
+          </LiquidGroup>
         ))}
       </div>
     </Section>
   );
 }
 
+// Contact details with a cross-device copy-to-clipboard email action.
 export function Contact() {
-  const { config } = useConfig();
+  const { config, intensity } = useConfig();
   const c = config.content;
   const [copied, setCopied] = useState(false);
+  const resetCopy = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(resetCopy.current), []);
   const resume = findResumeLink(config);
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(c.email);
+    if (await copyText(c.email)) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* clipboard unavailable */ }
+      clearTimeout(resetCopy.current);
+      resetCopy.current = setTimeout(() => setCopied(false), 2000);
+    } else {
+      window.prompt("Copy this email address:", c.email);
+    }
   };
   return (
     <Section id="contact" title="Let's talk">
-      <p className="text-lg text-foreground/80 max-w-xl mb-8">Open to new opportunities, collaborations and interesting projects. The fastest way to reach me is email.</p>
-      <div className="flex flex-wrap gap-3 items-center">
-        <a href={`mailto:${c.email}`} className="liquid-btn"><span>Email me</span></a>
-        <button type="button" onClick={copy} className="ghost-btn inline-flex items-center gap-2" aria-live="polite">
-          {copied ? <><Check size={14} aria-hidden="true" />Copied</> : <><Copy size={14} aria-hidden="true" />Copy {c.email}</>}
-        </button>
-        {resume && <ResumeButton url={resume.url} name={c.name} />}
-      </div>
+      <LiquidText className="text-lg text-foreground/80 max-w-xl mb-8" text="Open to new opportunities, collaborations and interesting projects. The fastest way to reach me is email." />
+      <LiquidGroup delay={250} className="action-row">
+        <LiquidDrop className="action-slot"><Button asChild variant="liquid" size="portfolio"><a href={`mailto:${c.email}`}><span>Email me</span></a></Button></LiquidDrop>
+        <LiquidDrop index={1} className="action-slot"><Button type="button" variant="quiet" size="portfolio" onClick={copy} className="copy-action" data-copied={copied} data-motion={intensity > 0} aria-label={copied ? "Copied" : `Copy ${c.email}`}>
+          <span className="copy-state-stack" aria-hidden="true">
+            <span className="copy-state" data-visible={!copied}><Copy size={16} /><span>Copy {c.email}</span></span>
+            <span className="copy-state" data-visible={copied}><Check size={16} /><span>Copied</span></span>
+          </span>
+        </Button></LiquidDrop>
+        {resume && <LiquidDrop index={2} className="action-slot"><ResumeButton url={resume.url} name={c.name} /></LiquidDrop>}
+      </LiquidGroup>
+      <span className="sr-only" role="status">{copied ? "Email address copied" : ""}</span>
       <ul className="mt-10 flex flex-wrap gap-6">
         {c.links.filter((l) => l.url && l !== resume).map((l) => (
           <li key={l.label}><a className="link inline-flex items-center gap-1" href={l.url} target="_blank" rel="noopener noreferrer">{l.label} <ArrowUpRight size={14} aria-hidden="true" /></a></li>
@@ -274,6 +282,7 @@ export function Contact() {
   );
 }
 
+// Developer-only readout of config source and motion state.
 export function DebugPanel() {
   const { config, source, lastError, intensity } = useConfig();
   const [show, setShow] = useState(false);
@@ -290,35 +299,3 @@ export function DebugPanel() {
   );
 }
 
-export function IntroScreen() {
-  const { config } = useConfig();
-  const [done, setDone] = useState(false);
-  useEffect(() => {
-    const start = performance.now();
-    const finish = () => {
-      const wait = Math.max(0, 1200 - (performance.now() - start));
-      setTimeout(() => setDone(true), wait);
-    };
-    const img = new Image();
-    img.src = photo.url;
-    const ready = Promise.all([
-      document.fonts?.ready ?? Promise.resolve(),
-      img.decode().catch(() => undefined),
-      new Promise((r) => (document.readyState === "complete" ? r(null) : window.addEventListener("load", () => r(null), { once: true }))),
-    ]);
-    const cap = setTimeout(() => setDone(true), 4000);
-    ready.then(finish);
-    return () => clearTimeout(cap);
-  }, []);
-  useEffect(() => {
-    if (done) window.dispatchEvent(new Event("app:intro-done"));
-  }, [done]);
-  return (
-    <div className="intro-screen" data-done={done} aria-hidden={done} role="status" aria-label="Loading">
-      <div className="text-center">
-        <p className="intro-mark">{config.content.name}</p>
-        <div className="intro-bar"><span /></div>
-      </div>
-    </div>
-  );
-}

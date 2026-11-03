@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportError } from "../lib/report-error";
 
+// Fallback page for unknown paths.
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -35,6 +36,7 @@ function NotFoundComponent() {
   );
 }
 
+// Root error boundary with a retry action.
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
@@ -73,6 +75,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   );
 }
 
+// Root route defining document head, icons and shared providers.
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -99,6 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// HTML document shell rendered on the server.
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -113,6 +117,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// App-wide providers wrapped around the routed page.
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 

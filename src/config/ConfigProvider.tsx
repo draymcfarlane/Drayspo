@@ -1,10 +1,13 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import defaultJson from "./default.json";
 import { configSchema, type SiteConfig } from "./schema";
 import { isDaytime } from "@/lib/sun";
 
+// Brightness preference chosen in the theme switch.
 export type ThemePref = "light" | "dark" | "auto";
+// Palette applied when the light theme is active.
 const LIGHT = { background: "#F4F1FA", text: "#16131F", primary: "#6D28D9", secondary: "#0891B2", accent: "#DB2777" };
+// Text colors used on top of the liquid gradient.
 const INK = { dark: "#0B0B14", light: "#F7F5FB" };
 
 /** Relative luminance of a #rrggbb colour, as defined by WCAG. */
@@ -32,13 +35,25 @@ export function onLiquid(colors: { primary: string; secondary: string; accent: s
   return contrast(INK.dark) >= contrast(INK.light) ? INK.dark : INK.light;
 }
 
+// Bundled config used until a remote config loads.
 export const defaultConfig = configSchema.parse(defaultJson);
+// Where the active config came from.
 type Source = "api" | "default";
+// Values exposed through the config context.
 type Ctx = { config: SiteConfig; source: Source; intensity: number; lastError: string | null; pref: ThemePref; setPref: (p: ThemePref) => void };
 
+// Context holding the active config and theme state.
 const ConfigContext = createContext<Ctx>({ config: defaultConfig, source: "default", intensity: defaultConfig.animation.intensity, lastError: null, pref: "auto", setPref: () => {} });
-export const useConfig = () => useContext(ConfigContext);
+// Reads the config context, normalizing settings that predate newer fields.
+export const useConfig = () => {
+  const context = useContext(ConfigContext);
+  // Hot updates can retain context/state created before new fields existed.
+  // Normalize at the read boundary too, not only when fetching remote config.
+  const config = useMemo(() => configSchema.parse(context.config), [context.config]);
+  return { ...context, config };
+};
 
+// Fetches and validates a remote config, falling back to defaults on failure.
 export async function loadConfig(baseUrl: string | undefined): Promise<{ config: SiteConfig; source: Source; error: string | null }> {
   if (!baseUrl) return { config: defaultConfig, source: "default", error: "VITE_CONFIG_API_URL not set" };
   try {
@@ -52,6 +67,7 @@ export async function loadConfig(baseUrl: string | undefined): Promise<{ config:
   }
 }
 
+// Writes palette and motion settings to CSS custom properties.
 function applyTheme(c: SiteConfig) {
   const r = document.documentElement;
   const { colors, fonts, mode } = c.theme;
@@ -77,6 +93,7 @@ function applyTheme(c: SiteConfig) {
   if (link.href !== href) link.href = href;
 }
 
+// Provides config, theme preference and motion intensity to the app.
 export function ConfigProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{ config: SiteConfig; source: Source; lastError: string | null }>({ config: defaultConfig, source: "default", lastError: null });
   const [reduced, setReduced] = useState(false);
@@ -90,17 +107,16 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", h);
   }, []);
 
+  // Every page load starts on Auto; a manual choice lasts for that visit only.
   const [pref, setPrefState] = useState<ThemePref>("auto");
   const [day, setDay] = useState(false);
   useEffect(() => {
-    const saved = localStorage.getItem("theme-pref");
-    if (saved === "light" || saved === "dark" || saved === "auto") setPrefState(saved);
     const check = () => setDay(isDaytime(new Date()));
     check();
     const t = setInterval(check, 60_000);
     return () => clearInterval(t);
   }, []);
-  const setPref = (p: ThemePref) => { setPrefState(p); localStorage.setItem("theme-pref", p); };
+  const setPref = (p: ThemePref) => { setPrefState(p); };
   const mode = pref === "auto" ? (day ? "light" : "dark") : pref;
   const config: SiteConfig = mode === "light"
     ? { ...state.config, theme: { ...state.config.theme, mode: "light", colors: { ...state.config.theme.colors, ...LIGHT } } }

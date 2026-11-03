@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
+import { useAppReady } from "@/lib/app-ready";
 import { useConfig } from "@/config/ConfigProvider";
 
+// Fragment shader that blends drifting color blobs into the page backdrop.
 const frag = /* glsl */ `
 precision mediump float;
 uniform float uTime; uniform vec2 uRes; uniform vec2 uMouse; uniform float uCount; uniform float uCursor;
@@ -29,8 +31,10 @@ void main(){
   // outc += (fract(sin(dot(uv*uRes, vec2(12.9898,78.233)))*43758.5453)-0.5)*0.02;
   gl_FragColor = vec4(outc, 1.0);
 }`;
+// Pass-through vertex shader for the full-screen triangle.
 const vert = `attribute vec2 position; attribute vec2 uv; varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position,0.0,1.0);}`;
 
+// Converts a hex color to normalized RGB for shader uniforms.
 const hexToRgb = (h: string): [number, number, number] => {
   let s = h.slice(1);
   if (s.length === 3) s = s.split("").map((c) => c + c).join("");
@@ -38,11 +42,13 @@ const hexToRgb = (h: string): [number, number, number] => {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 };
 
+// Frame-capped WebGL background driven by the active theme palette.
 export function LiquidBackground() {
   const { config, intensity } = useConfig();
+  const ready = useAppReady();
   const host = useRef<HTMLDivElement>(null);
-  const live = useRef({ config, intensity });
-  live.current = { config, intensity };
+  const live = useRef({ config, intensity, ready });
+  live.current = { config, intensity, ready };
 
   useEffect(() => {
     let raf = 0;
@@ -88,7 +94,7 @@ export function LiquidBackground() {
           const v = cur[key];
           for (let j = 0; j < 3; j++) v[j] = v[j]! + (tgt[j]! - v[j]!) * ease;
         });
-        t += dt * cfg.animation.blobSpeed * k;
+        t += dt * cfg.animation.blobSpeed * k * (live.current.ready ? 1 : 0);
         mouse[0] = mouse[0]! + (target[0]! - mouse[0]!) * ease * 2; mouse[1] = mouse[1]! + (target[1]! - mouse[1]!) * ease * 2;
         const u = program.uniforms as Record<string, { value: unknown }>;
         u['uTime']!.value = t + 10; u['uMouse']!.value = mouse;

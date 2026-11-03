@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { registerPreload } from "@/lib/app-ready";
+import { LiquidBlock } from "./Liquid";
 import { ArrowUpRight } from "lucide-react";
 
+// Single day in the contribution calendar.
 type Day = { date: string; count: number; level: number };
+// Subset of repository fields used by the widget.
 type Repo = { name: string; html_url: string; description: string | null; language: string | null; pushed_at: string; fork: boolean };
 
+// Shows the contribution calendar and most recently updated public repositories.
 export function GitHubActivity({ username }: { username: string }) {
   const [days, setDays] = useState<Day[] | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -12,26 +17,26 @@ export function GitHubActivity({ username }: { username: string }) {
   const [hover, setHover] = useState<Day | null>(null);
 
   useEffect(() => {
-    fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`)
+    registerPreload(fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => { setDays(d.contributions); setTotal(d.total?.lastYear ?? null); })
-      .catch(() => setFailed(true));
-    fetch(`https://api.github.com/users/${username}/repos?sort=pushed&per_page=12`)
+      .catch(() => setFailed(true)));
+    registerPreload(fetch(`https://api.github.com/users/${username}/repos?sort=pushed&per_page=12`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: Repo[]) => setRepos(d.filter((r) => !r.fork).slice(0, 4)))
-      .catch(() => setRepos([]));
+      .catch(() => setRepos([])));
   }, [username]);
 
   // Group into week columns starting Sunday
   const weeks: (Day | null)[][] = [];
-  if (days?.length) {
-    const pad = new Date(days[0]!.date + "T00:00:00").getDay();
+  if (days?.[0]) {
+    const pad = new Date(days[0].date + "T00:00:00").getDay();
     const all: (Day | null)[] = [...Array(pad).fill(null), ...days];
     for (let i = 0; i < all.length; i += 7) weeks.push(all.slice(i, i + 7));
   }
 
   return (
-    <div className="gh-card">
+    <LiquidBlock className="gh-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
         <p className="font-heading text-lg font-bold">
           {total !== null ? `${total.toLocaleString()} contributions in the last year` : failed ? "Contribution graph unavailable right now" : "Loading contributions…"}
@@ -82,6 +87,6 @@ export function GitHubActivity({ username }: { username: string }) {
           ))}
         </ul>
       )}
-    </div>
+    </LiquidBlock>
   );
 }

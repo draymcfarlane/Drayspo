@@ -1,5 +1,6 @@
 /** Approximate local sunrise/sunset (in hours, local clock) for a date.
  * Longitude is estimated from the computer's time-zone offset; latitude defaults to the Caribbean (~19°N). */
+// Approximates local sunrise and sunset hours for a date and latitude.
 export function sunTimes(date: Date, lat = 19.3, lon?: number) {
   const tz = -date.getTimezoneOffset() / 60; // hours ahead of UTC, includes DST
   const lng = lon ?? tz * 15;
@@ -15,6 +16,7 @@ export function sunTimes(date: Date, lat = 19.3, lon?: number) {
   return { sunrise: noon - half, sunset: noon + half };
 }
 
+// Reports whether the given time falls between sunrise and sunset.
 export function isDaytime(date: Date, lat?: number, lon?: number) {
   const { sunrise, sunset } = sunTimes(date, lat, lon);
   const h = date.getHours() + date.getMinutes() / 60;

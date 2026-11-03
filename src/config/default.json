@@ -28,6 +28,8 @@
       "experience",
       "projects",
       "github",
+      "music",
+      "thoughts",
       "skills",
       "contact"
     ],
@@ -37,7 +39,14 @@
     "name": "Dray McFarlane",
     "title": "Junior Software Developer",
     "tagline": "I build web and mobile apps, and I'm always learning and growing as a developer.",
+    "brand": {
+      "strong": "Dray’s Po",
+      "tail": "rtfolio"
+    },
     "location": "Cayman Islands",
+    "holo": { "photoUrl": "/dray-profile.png", "cutout": false, "label": "Drayspo · ID", "stamp": "KY · 2025", "credential": "BSc CS · CAPM" },
+    "music": { "playlistUrl": "", "playlistName": "", "nowPlaying": null },
+    "thoughts": [],
     "email": "draymcfarlane345@gmail.com",
     "links": [
       {
