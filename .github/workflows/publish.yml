@@ -1,6 +1,8 @@
 name: Publish to drayspo.com
 
-# Manual only: builds main and deploys it to GitHub Pages (custom domain drayspo.com).
+# Manual only: run from the Actions tab, or from Drayspo Studio's "Publish" button.
+# Content comes from content/live.json on the "content" branch, which Studio writes
+# only when you press Publish. Drafts (content/draft.json) never ship.
 on:
   workflow_dispatch:
 
@@ -17,18 +19,39 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out site
+        uses: actions/checkout@v4
         with:
           ref: main
+          persist-credentials: false
 
       - name: Check the site has been synced
         run: |
           [ -f package.json ] || { echo "::error::No site code on main yet. Run 'Sync from upstream' first"; exit 1; }
 
+      - name: Check out published content
+        id: content
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: content
+          path: _content
+          persist-credentials: false
+
       - uses: oven-sh/setup-bun@v2
 
-      - name: Install
+      - name: Install dependencies
         run: bun install
+
+      - name: Apply published content
+        run: |
+          if [ -f _content/content/live.json ]; then
+            bun tools/content/validate.ts _content/content/live.json
+            cp _content/content/live.json src/config/default.json
+            echo "Using content from the content branch ($(git -C _content rev-parse --short HEAD))."
+          else
+            echo "No published content yet; using the site's built-in default.json."
+          fi
 
       - name: Test
         run: bun run test

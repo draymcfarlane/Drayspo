@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+setup-report.txt
+install-report.txt
+push-report.txt
+commit-msg.txt
+commit-and-push.bat
