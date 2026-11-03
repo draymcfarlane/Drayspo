@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAppReady } from "@/lib/app-ready";
 import { useConfig } from "@/config/ConfigProvider";
+import { perfMode } from "@/lib/perf";
 
 // Fragment shader that blends drifting color blobs into the page backdrop.
 const frag = /* glsl */ `
@@ -58,7 +59,9 @@ export function LiquidBackground() {
       const { Renderer, Program, Mesh, Triangle } = await import("ogl");
       if (disposed || !host.current) return;
       const mobile = window.matchMedia("(max-width: 768px)").matches;
-      const renderer = new Renderer({ dpr: mobile ? 0.35 : 0.5, alpha: false });
+      // The blobs are soft gradients, so a small canvas scaled up by CSS looks the same
+      // and costs a fraction of the pixels (about 1/16 of a full-resolution canvas).
+      const renderer = new Renderer({ dpr: mobile ? 0.25 : 0.3, alpha: false, antialias: false, powerPreference: "low-power" });
       const gl = renderer.gl;
       gl.canvas.setAttribute("aria-hidden", "true");
       gl.canvas.className = "h-full w-full";
@@ -80,10 +83,16 @@ export function LiquidBackground() {
       const target = [0.5, 0.5];
       const onMove = (e: PointerEvent) => { target[0] = e.clientX / window.innerWidth; target[1] = 1 - e.clientY / window.innerHeight; };
       window.addEventListener("pointermove", onMove);
-      let t = 0; let last = performance.now();
+      let t = 0; let last = performance.now(); let painted = false;
       const loop = (now: number) => {
         raf = requestAnimationFrame(loop);
-        if (now - last < 1000 / 45) return; // cap ~45fps: blobs move slowly, saves GPU
+        if (now - last < 1000 / 30) return; // cap 30fps: the blobs drift slowly, so more frames buy nothing
+        if (perfMode() === "lite") { // lite: one still frame
+          renderer.render({ scene: mesh });
+          if (!painted) { painted = true; host.current?.setAttribute("data-painted", "true"); }
+          cancelAnimationFrame(raf);
+          return;
+        }
         const dt = Math.min((now - last) / 1000, 0.05); last = now;
         const { config: cfg, intensity: k } = live.current;
         const col = cfg.theme.colors;
@@ -102,15 +111,22 @@ export function LiquidBackground() {
         u['uCursor']!.value = cfg.animation.enableCursorEffects ? k : 0;
         u['uP']!.value = cur.p; u['uS']!.value = cur.s; u['uA']!.value = cur.a; u['uBg']!.value = cur.bg;
         renderer.render({ scene: mesh });
+        // Let the CSS fade begin only once real pixels exist on the canvas.
+        if (!painted) { painted = true; host.current?.setAttribute("data-painted", "true"); }
+
       };
       const onVis = () => { cancelAnimationFrame(raf); if (!document.hidden) { last = performance.now(); raf = requestAnimationFrame(loop); } };
       document.addEventListener("visibilitychange", onVis);
+      // Coming back to full mode restarts the loop; lite mode stops it (see the check in loop()).
+      const onPerf = (e: Event) => { if ((e as CustomEvent).detail === "full") { cancelAnimationFrame(raf); last = performance.now(); raf = requestAnimationFrame(loop); } };
+      window.addEventListener("perf-mode", onPerf);
       raf = requestAnimationFrame(loop);
       cleanup = () => {
         cancelAnimationFrame(raf);
         window.removeEventListener("resize", resize);
         window.removeEventListener("pointermove", onMove);
         document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("perf-mode", onPerf);
         gl.getExtension("WEBGL_lose_context")?.loseContext();
         gl.canvas.remove();
       };

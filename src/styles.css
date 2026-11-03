@@ -185,7 +185,7 @@ html::-webkit-scrollbar { display: none; }
 @utility timeline-dot { position: absolute; top: 0.3rem; left: -2rem; width: 1rem; height: 1rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--background), 0 0 20px var(--accent); @media (width >= 48rem) { left: -2.55rem; } }
 @utility skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 50; padding: .5rem 1rem; border-radius: .5rem; background: var(--primary); color: var(--primary-foreground); &:focus { top: 1rem; } }
 @utility debug-panel { position: fixed; right: 1rem; bottom: 1rem; z-index: 60; font: 12px/1.6 ui-monospace, monospace; padding: .75rem 1rem; border-radius: .75rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--c-bg) 85%, transparent);  max-width: 18rem; }
-@media (prefers-reduced-motion: reduce) { .intro-mark, .intro-bar > span, .side-nav, .nav-bubble, .scroll-pill, .theme-toggle button { animation: none !important; } .goo-indicator { filter: none !important; } .goo-indicator > span, .nav-bubble { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .intro-mark, .intro-bar > span, .side-nav, .nav-bubble, .scroll-pill, .theme-toggle button { animation: none !important; } .goo-indicator { filter: none !important; } .goo-indicator > span, .nav-bubble, .liquid-bg, .liquid-bg canvas { transition: none !important; } }
 @utility gh-card { padding: 1.75rem; border-radius: var(--radius-2xl); border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 88%, transparent);  }
 @utility gh-cell {
   display: block; width: 15px; height: 15px; border-radius: 4px; background: color-mix(in oklab, var(--c-text) 8%, transparent); transition: transform .15s;
@@ -204,8 +204,8 @@ html::-webkit-scrollbar { display: none; }
 @keyframes pill-glow { 0%,100% { box-shadow: 0 0 10px color-mix(in oklab, var(--c-primary) 60%, transparent); } 50% { box-shadow: 0 0 18px color-mix(in oklab, var(--c-accent) 70%, transparent); } }
 @utility side-nav { position: fixed; right: 1.75rem; top: 50%; transform: translateY(-50%); z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 0.6rem; }
 @keyframes wave-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-.side-nav .nav-bubble, .side-nav .goo-indicator > span { animation: wave-bob 3.2s ease-in-out infinite; animation-delay: var(--bob-delay, 0s); }
-.side-nav .goo-indicator > span { animation-name: wave-bob-ind; }
+.side-nav .nav-bubble, .side-nav .goo-indicator { animation: wave-bob 3.2s ease-in-out infinite; animation-delay: var(--bob-delay, 0s); }
+.side-nav .goo-indicator { animation-name: wave-bob-ind; will-change: translate; }
 @keyframes wave-bob-ind { 0%,100% { translate: 0 0; } 50% { translate: 0 -5px; } }
 @utility goo-indicator {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
@@ -231,7 +231,7 @@ html::-webkit-scrollbar { display: none; }
   &[data-active="true"] { color: oklch(0.99 0 0); background: transparent; box-shadow: none; }
   &[data-active="true"]:hover { translate: none; scale: none; }
 }
-.side-nav[data-motion="false"], .side-nav[data-motion="false"] .nav-bubble, .side-nav[data-motion="false"] .goo-indicator > span { animation: none; }
+.side-nav[data-motion="false"], .side-nav[data-motion="false"] .nav-bubble, .side-nav[data-motion="false"] .goo-indicator { animation: none; }
 .side-nav[data-motion="false"] .nav-bubble { transition: none; translate: none; scale: none; }
 @utility scroll-pill {
   position: fixed; right: 6px; top: 0; width: 6px; border-radius: 999px; z-index: 50; cursor: grab; touch-action: none;
@@ -321,7 +321,9 @@ html::-webkit-scrollbar { display: none; }
 .playlist-link { height: auto; white-space: normal; margin-bottom: 22px; }
 .music-embed { width: 100%; height: 450px; border: 0; border-radius: 16px; background: transparent; }
 .playlist-skeleton { display: grid; gap: 16px; }.skeleton-row { display: flex; align-items: center; gap: 12px; color: var(--muted-foreground); font-size: 11px; }.skeleton-art { width: 40px; height: 40px; flex-shrink: 0; border-radius: 6px; }.skeleton-row > div { display: grid; gap: 8px; flex: 1; }.skeleton-row > div i { display: block; height: 7px; border-radius: 4px; width: 80%; }.skeleton-row > div i:last-child { width: 55%; }.skeleton-duration { width: 25px; height: 7px; border-radius: 4px; }
-.shimmer { background: linear-gradient(90deg, var(--muted), color-mix(in oklab, var(--foreground) 16%, var(--muted)), var(--muted)); background-size: 200% 100%; animation: skeleton-shimmer 2.4s ease-in-out infinite; }
+.shimmer { position: relative; overflow: hidden; background: var(--muted); }
+.shimmer::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 16%, transparent), transparent); transform: translateX(-100%); animation: skeleton-sweep 2.4s ease-in-out infinite; will-change: transform; }
+@keyframes skeleton-sweep { to { transform: translateX(100%); } }
 @keyframes skeleton-shimmer { to { background-position: -200% 0; } }
 .thoughts-section { position: relative; isolation: isolate; }.thoughts-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 3rem; }.thoughts-heading .section-title { margin-bottom: 0; }
 /* An explicit flex basis keeps the tagline's width set by the row; a shrink-wrapped box feeds its own line breaks back into the measuring layer and collapses to one word per line. */
@@ -394,7 +396,13 @@ html::-webkit-scrollbar { display: none; }
 .lq-motion :is(.side-nav,.theme-toggle,.scroll-pill,.nav-burger) { transition: opacity .7s ease .55s, translate .9s cubic-bezier(.2,.9,.25,1.1) .55s; }
 .lq-motion:not(.lq-ready) :is(.side-nav,.theme-toggle,.scroll-pill,.nav-burger) { opacity: 0 !important; translate: 24px 0; pointer-events: none; }
 .lq-motion:not(.lq-ready) .holo-stage { opacity: 0; }
-html:not(.lq-ready) :is(.holo-wave,.holo-sheen,.holo-chip,.nav-bubble,.goo-indicator > span,.shimmer,.vinyl-record,.equalizer i,.note-float,.notebook-caret,.scroll-cue,.pill) { animation-play-state: paused !important; }
+/* Liquid background fades in with the entrance; the canvas follows its own first paint. */
+.liquid-bg { opacity: 0; transition: opacity 1.3s cubic-bezier(.33,0,.2,1); }
+html.lq-ready .liquid-bg { opacity: 1; }
+.liquid-bg canvas { opacity: 0; transition: opacity 1.1s cubic-bezier(.33,0,.2,1); }
+.liquid-bg[data-painted="true"] canvas { opacity: 1; }
+
+html:not(.lq-ready) :is(.holo-wave,.holo-sheen,.holo-chip,.nav-bubble,.goo-indicator,.shimmer,.vinyl-record,.equalizer i,.note-float,.notebook-caret,.scroll-cue,.pill) { animation-play-state: paused !important; }
 @media (width < 48rem) {
   .intro-mark { font-size: 2rem; }
   .lq-motion .side-nav { transition: clip-path .5s cubic-bezier(.22,1,.36,1), opacity .35s ease, visibility 0s linear; }
@@ -431,3 +439,18 @@ html:not(.lq-ready) :is(.holo-wave,.holo-sheen,.holo-chip,.nav-bubble,.goo-indic
 
 /* Until the intro hands off, keep the page hidden (still laid out so the name handoff can measure it). */
 html:not(.lq-ready) body > :not(.intro-screen) { visibility: hidden; }
+
+/* ---- Performance (src/lib/perf.ts) ---- */
+/* The invisible sizing copy of each heading never needs a blinking caret. */
+.typed-heading-size .notebook-caret { animation: none !important; }
+/* Carets blink for a few seconds after typing, then rest. */
+.notebook-caret { animation-iteration-count: 8 !important; }
+/* Sections you can't see don't animate. */
+[data-offscreen] :is(*, *::before, *::after) { animation-play-state: paused !important; }
+/* Lite mode: the page stays the same, minus the effects that cost the most to draw. */
+[data-perf="lite"] .goo-indicator, [data-perf="lite"] .card-goo { filter: none !important; }
+[data-perf="lite"] .goo-indicator > .goo-tail { display: none; }
+[data-perf="lite"] :is(*, *::before, *::after) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+[data-perf="lite"] :is(.holo-wave, .holo-sheen, .pill, .note-float, .holo-chip, .nav-bubble, .goo-indicator, .notebook-caret), [data-perf="lite"] .shimmer::after { animation: none !important; }
+[data-perf="lite"].lq-motion .lq-line > .lq-line-in { filter: none !important; }
+[data-perf="lite"].lq-motion .lq-drop { filter: none !important; }

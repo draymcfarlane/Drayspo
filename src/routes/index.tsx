@@ -8,6 +8,7 @@ import { LiquidBackground } from "@/components/LiquidBackground";
 import { About, Contact, DebugPanel, Experience, GitHub, GooeyDefs, Hero, Projects, Skills } from "@/components/Sections";
 import { IntroScreen } from "@/components/IntroScreen";
 import { markAppReady, useAppReady } from "@/lib/app-ready";
+import { initPerfMode, measurePerf, pauseOffscreen } from "@/lib/perf";
 import { resetToHome } from "@/lib/home-start";
 import { Music } from "@/components/MusicSection";
 import { Thoughts } from "@/components/ThoughtsSection";
@@ -52,6 +53,15 @@ function Page() {
     return () => { mq.removeEventListener("change", sync); document.documentElement.classList.remove("lq-motion"); };
   }, [intensity]);
   useEffect(() => { if (!INTRO_ENABLED) markAppReady(); }, []);
+  // Keep every browser smooth: remembered lite mode first, then pause off-screen loops
+  // and measure real frame times once the entrance has played.
+  useLayoutEffect(() => { initPerfMode(); }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const stop = pauseOffscreen();
+    measurePerf();
+    return stop;
+  }, [ready]);
   const smooth = intensity > 0 && config.animation.enableParallax;
   useEffect(() => {
     if (!smooth) return;
