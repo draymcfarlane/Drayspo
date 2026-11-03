@@ -45,7 +45,7 @@
     },
     "location": "Cayman Islands",
     "holo": { "photoUrl": "/dray-profile.png", "cutout": false, "label": "Drayspo · ID", "stamp": "KY · 2025", "credential": "BSc CS · CAPM" },
-    "music": { "playlistUrl": "", "playlistName": "", "nowPlaying": null },
+    "music": { "playlistUrl": "", "playlistName": "", "nowPlayingUrl": "", "nowPlaying": null },
     "thoughts": [],
     "email": "draymcfarlane345@gmail.com",
     "links": [
