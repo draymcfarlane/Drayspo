@@ -5,6 +5,32 @@ import { isDaytime } from "@/lib/sun";
 
 export type ThemePref = "light" | "dark" | "auto";
 const LIGHT = { background: "#F4F1FA", text: "#16131F", primary: "#6D28D9", secondary: "#0891B2", accent: "#DB2777" };
+const INK = { dark: "#0B0B14", light: "#F7F5FB" };
+
+/** Relative luminance of a #rrggbb colour, as defined by WCAG. */
+function luminance(hex: string) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const toLin = (v: number) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * toLin((n >> 16) & 255) + 0.7152 * toLin((n >> 8) & 255) + 0.0722 * toLin(n & 255);
+}
+
+/**
+ * Ink for text sitting on the liquid gradient. The gradient's own colours change
+ * with the palette, so the readable ink is chosen by contrast rather than by
+ * theme name: dark ink on the bright dark-mode stops, pale ink on the deeper
+ * light-mode ones.
+ */
+export function onLiquid(colors: { primary: string; secondary: string; accent: string }) {
+  const avg = (luminance(colors.primary) + luminance(colors.secondary) + luminance(colors.accent)) / 3;
+  const contrast = (ink: string) => {
+    const l = luminance(ink);
+    return (Math.max(avg, l) + 0.05) / (Math.min(avg, l) + 0.05);
+  };
+  return contrast(INK.dark) >= contrast(INK.light) ? INK.dark : INK.light;
+}
 
 export const defaultConfig = configSchema.parse(defaultJson);
 type Source = "api" | "default";
@@ -34,6 +60,7 @@ function applyTheme(c: SiteConfig) {
   r.style.setProperty("--c-accent", colors.accent);
   r.style.setProperty("--c-bg", colors.background);
   r.style.setProperty("--c-text", colors.text);
+  r.style.setProperty("--on-liquid", onLiquid(colors));
   r.style.setProperty("--font-heading-family", `"${fonts.heading}"`);
   r.style.setProperty("--font-body-family", `"${fonts.body}"`);
   r.classList.toggle("dark", mode === "dark");

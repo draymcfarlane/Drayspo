@@ -8,6 +8,8 @@ import { LiquidBackground } from "@/components/LiquidBackground";
 import { About, Contact, DebugPanel, Experience, GitHub, GooeyDefs, Hero, IntroScreen, Projects, Skills } from "@/components/Sections";
 
 const c = defaultConfig.content;
+// Temporarily disabled; keep the intro available to re-enable later.
+const INTRO_ENABLED = false;
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -49,7 +51,7 @@ function Page() {
 
   return (
     <>
-      <IntroScreen />
+      {INTRO_ENABLED && <IntroScreen />}
       <GooeyDefs />
       <LiquidBackground />
       <a href="#main" className="skip-link">Skip to content</a>
@@ -57,7 +59,7 @@ function Page() {
         {visibleSections(config).map((s) => { const C = MAP[s]; return <C key={s} />; })}
       </main>
       <ThemeToggle />
-      <SideNav />
+      <SideNav introEnabled={INTRO_ENABLED} />
       <DebugPanel />
     </>
   );

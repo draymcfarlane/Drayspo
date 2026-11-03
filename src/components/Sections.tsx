@@ -1,4 +1,5 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { ArrowRight, ArrowUpRight, Check, Copy, Diamond } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { findResumeLink } from "@/config/schema";
@@ -13,6 +14,11 @@ export function GooeyDefs() {
         <filter id="goo">
           <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
           <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="goo" />
+          <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+        <filter id="goo-nav" x="-20%" y="-50%" width="140%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo" />
           <feComposite in="SourceGraphic" in2="goo" operator="atop" />
         </filter>
         <filter id="wobble">
@@ -57,13 +63,13 @@ export function Hero() {
         <img src={photo.url} alt={`Portrait of ${c.name}`} width={176} height={176} decoding="async" fetchPriority="high" />
       </motion.div>
       <p className="eyebrow">{c.location}</p>
-      <h1 className="hero-name">{c.name}</h1>
+      <h1 className="hero-name">{c.name}<span className="sr-only"> — {c.title}</span></h1>
       <motion.p className="hero-title" initial={intensity ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }}>
         {c.title}
       </motion.p>
       <p className="hero-tagline">{c.tagline}</p>
       <div className="mt-10 flex flex-wrap gap-3">
-        <a href="#contact" className="liquid-btn"><span>Get in touch</span></a>
+        <a href="#contact" className="liquid-btn"><span>Get in touch</span><ArrowRight size={18} strokeWidth={2.25} aria-hidden="true" /></a>
         {resume && <ResumeButton url={resume.url} name={c.name} />}
       </div>
     </section>
@@ -129,7 +135,7 @@ export function Experience() {
             <h3 className="text-xl md:text-2xl font-heading font-bold">{e.role}</h3>
             <p className="text-muted-foreground mb-3">{e.company}</p>
             <ul className="space-y-1.5 text-foreground/85">
-              {e.highlights.filter(Boolean).map((h, j) => <li key={j} className="flex gap-2"><span className="text-accent">◆</span>{h}</li>)}
+              {e.highlights.filter(Boolean).map((h, j) => <li key={j} className="flex gap-2"><Diamond size={9} className="text-accent shrink-0 mt-[6px]" fill="currentColor" aria-hidden="true" />{h}</li>)}
             </ul>
           </motion.li>
         ))}
@@ -174,8 +180,8 @@ function ProjectCard({ p, i }: { p: { name: string; description: string; tech: s
           {p.tech.filter(Boolean).map((t) => <li key={t} className="tag">{t}</li>)}
         </ul>
         <div className="flex gap-4 text-sm font-medium">
-          {p.url && <a className="link" href={p.url} target="_blank" rel="noopener noreferrer">Live site ↗</a>}
-          {p.repo && <a className="link" href={p.repo} target="_blank" rel="noopener noreferrer">Source ↗</a>}
+          {p.url && <a className="link inline-flex items-center gap-1" href={p.url} target="_blank" rel="noopener noreferrer">Live site <ArrowUpRight size={14} aria-hidden="true" /></a>}
+          {p.repo && <a className="link inline-flex items-center gap-1" href={p.repo} target="_blank" rel="noopener noreferrer">Source <ArrowUpRight size={14} aria-hidden="true" /></a>}
         </div>
         </div>
       </div>
@@ -253,14 +259,14 @@ export function Contact() {
       <p className="text-lg text-foreground/80 max-w-xl mb-8">Open to new opportunities, collaborations and interesting projects. The fastest way to reach me is email.</p>
       <div className="flex flex-wrap gap-3 items-center">
         <a href={`mailto:${c.email}`} className="liquid-btn"><span>Email me</span></a>
-        <button type="button" onClick={copy} className="ghost-btn" aria-live="polite">
-          {copied ? "Copied ✓" : `Copy ${c.email}`}
+        <button type="button" onClick={copy} className="ghost-btn inline-flex items-center gap-2" aria-live="polite">
+          {copied ? <><Check size={14} aria-hidden="true" />Copied</> : <><Copy size={14} aria-hidden="true" />Copy {c.email}</>}
         </button>
         {resume && <ResumeButton url={resume.url} name={c.name} />}
       </div>
       <ul className="mt-10 flex flex-wrap gap-6">
         {c.links.filter((l) => l.url && l !== resume).map((l) => (
-          <li key={l.label}><a className="link" href={l.url} target="_blank" rel="noopener noreferrer">{l.label} ↗</a></li>
+          <li key={l.label}><a className="link inline-flex items-center gap-1" href={l.url} target="_blank" rel="noopener noreferrer">{l.label} <ArrowUpRight size={14} aria-hidden="true" /></a></li>
         ))}
       </ul>
       <footer className="mt-24 text-sm text-muted-foreground">© {c.name}</footer>
@@ -304,6 +310,9 @@ export function IntroScreen() {
     ready.then(finish);
     return () => clearTimeout(cap);
   }, []);
+  useEffect(() => {
+    if (done) window.dispatchEvent(new Event("app:intro-done"));
+  }, [done]);
   return (
     <div className="intro-screen" data-done={done} aria-hidden={done} role="status" aria-label="Loading">
       <div className="text-center">

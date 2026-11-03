@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 
 type Day = { date: string; count: number; level: number };
 type Repo = { name: string; html_url: string; description: string | null; language: string | null; pushed_at: string; fork: boolean };
@@ -35,7 +36,7 @@ export function GitHubActivity({ username }: { username: string }) {
         <p className="font-heading text-lg font-bold">
           {total !== null ? `${total.toLocaleString()} contributions in the last year` : failed ? "Contribution graph unavailable right now" : "Loading contributions…"}
         </p>
-        <a className="link text-sm" href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer">@{username} ↗</a>
+        <a className="link inline-flex items-center gap-1 text-sm" href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer">@{username} <ArrowUpRight size={14} aria-hidden="true" /></a>
       </div>
       {weeks.length > 0 && (
         <div className="overflow-x-auto pb-2 gh-scroll">
@@ -65,7 +66,7 @@ export function GitHubActivity({ username }: { username: string }) {
       {repos === null ? (
         <p className="text-muted-foreground">Loading repositories…</p>
       ) : repos.length === 0 ? (
-        <p className="text-muted-foreground">See my latest work on <a className="link" href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer">GitHub ↗</a></p>
+        <p className="text-muted-foreground">See my latest work on <a className="link inline-flex items-center gap-1" href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer">GitHub <ArrowUpRight size={14} aria-hidden="true" /></a></p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {repos.map((r) => (
