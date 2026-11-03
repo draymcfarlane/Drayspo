@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "theme": {
+    "colors": {
+      "primary": "#7C3AED",
+      "secondary": "#06B6D4",
+      "accent": "#F472B6",
+      "background": "#0B0B14",
+      "text": "#F5F5F7"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter"
+    },
+    "mode": "dark"
+  },
+  "animation": {
+    "intensity": 0.8,
+    "blobSpeed": 0.5,
+    "blobCount": 4,
+    "enableCursorEffects": true,
+    "enableParallax": true
+  },
+  "layout": {
+    "sectionOrder": [
+      "hero",
+      "about",
+      "experience",
+      "projects",
+      "github",
+      "skills",
+      "contact"
+    ],
+    "hiddenSections": []
+  },
+  "content": {
+    "name": "Dray McFarlane",
+    "title": "Junior Software Developer",
+    "tagline": "I build web and mobile apps, and I'm always learning and growing as a developer.",
+    "location": "Cayman Islands",
+    "email": "draymcfarlane345@gmail.com",
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/draymcfarlane/"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://www.linkedin.com/in/deonaundray-mcfarlane-215602242"
+      },
+      {
+        "label": "Resume PDF",
+        "url": "/resume.pdf"
+      }
+    ],
+    "about": "I'm Dray, a junior software developer who enjoys turning ideas into useful web and mobile apps. I graduated from the University College of the Cayman Islands in June 2025 with a Bachelor of Science in Computer Science (3.50 GPA) and earned my CAPM (Certified Associate in Project Management) in April 2025. Each role so far has added something new to my toolkit, from databases and CI/CD to mobile development, and I'm a quick learner who loves picking up the next technology.",
+    "experience": [
+      {
+        "company": "Cayman Islands Government (CSD)",
+        "role": "Junior Software Developer",
+        "start": "Spring 2025",
+        "end": "Present",
+        "highlights": [
+          "Contributed across the full software development lifecycle on web and mobile projects, from design to support",
+          "Gained hands-on experience managing CI/CD pipelines and helping coordinate system migrations",
+          "Broadened my skills with Oracle APEX and PL/SQL alongside modern web and mobile technologies"
+        ]
+      },
+      {
+        "company": "KPMG",
+        "role": "IT Assistant",
+        "start": "Fall 2022",
+        "end": "Spring 2025",
+        "highlights": [
+          "Built a strong foundation in machines, networking and servers",
+          "Contributed to application development while delivering great customer service",
+          "Took responsibility for the firm's server backups"
+        ]
+      },
+      {
+        "company": "Cayman Islands Government (CSD)",
+        "role": "Office Support Assistant",
+        "start": "Summer 2022",
+        "end": "Fall 2022",
+        "highlights": [
+          "Completed ISTQB software testing training",
+          "Learned to document applications with data dictionaries, ER diagrams and user manuals"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "name": "Public Transportation System",
+        "description": "A college public transportation system built in PHP that earned excellent user satisfaction from professors — recently converted into both a PWA and a mobile app.",
+        "tech": [
+          "PHP",
+          "PWA",
+          "React Native (Expo)"
+        ],
+        "url": "",
+        "repo": "https://github.com/draymcfarlane/"
+      },
+      {
+        "name": "Muscle Workout App",
+        "description": "A workout application for tracking muscle-group training, with local user data storage.",
+        "tech": [
+          "C++",
+          "Local storage"
+        ],
+        "url": "",
+        "repo": "https://github.com/draymcfarlane/"
+      },
+      {
+        "name": "Drayspo",
+        "description": "This portfolio — a live, config-driven site with liquid animations.",
+        "tech": [
+          "React",
+          "TypeScript",
+          "Framer Motion"
+        ],
+        "url": "",
+        "repo": "https://github.com/draymcfarlane/"
+      }
+    ],
+    "skills": [
+      {
+        "category": "Technical",
+        "items": [
+          "JavaScript (ES6+)",
+          "React Native (Expo)",
+          "HTML5 & CSS3",
+          "SQL & PL/SQL",
+          "Git & CI/CD Pipelines",
+          "Oracle APEX",
+          "Oracle Cloud Infrastructure (OCI)",
+          "jQuery"
+        ]
+      },
+      {
+        "category": "Tools",
+        "items": [
+          "Microsoft Power Platform",
+          "Jira",
+          "Bitbucket",
+          "Version Control Systems"
+        ]
+      },
+      {
+        "category": "Strengths",
+        "items": [
+          "Object Oriented Programming",
+          "Project Management (CAPM)",
+          "Quick learning",
+          "Customer service"
+        ]
+      }
+    ]
+  },
+  "polling": {
+    "intervalSeconds": 30
+  }
+}

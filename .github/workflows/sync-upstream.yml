@@ -1,0 +1,72 @@
+name: Sync from upstream
+
+# Pulls the upstream editor repo, keeps only application code (tools/upstream-sync/clean.mjs),
+# and commits it to main — only if tests and the build pass.
+on:
+  schedule:
+    - cron: "17 */6 * * *" # every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_VENDOR: ${{ vars.UPSTREAM_VENDOR }}
+    steps:
+      - name: Check settings
+        run: |
+          [ -n "${{ vars.UPSTREAM_REPO }}" ] || { echo "::error::Set the UPSTREAM_REPO repository variable (owner/repo)"; exit 1; }
+          [ -n "$UPSTREAM_VENDOR" ] || { echo "::error::Set the UPSTREAM_VENDOR repository variable"; exit 1; }
+
+      - name: Check out this repo
+        uses: actions/checkout@v4
+
+      - name: Check out upstream
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.UPSTREAM_REPO }}
+          ref: ${{ vars.UPSTREAM_BRANCH || 'main' }}
+          token: ${{ secrets.UPSTREAM_TOKEN || github.token }}
+          path: _upstream
+
+      - name: Record upstream commit
+        id: src
+        run: echo "sha=$(git -C _upstream rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Clean and copy
+        run: |
+          node tools/upstream-sync/clean.mjs --source _upstream --target .
+          rm -rf _upstream
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: |
+          bun run build
+          test -f dist/client/index.html
+
+      - name: Commit to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Already up to date with upstream ${{ steps.src.outputs.sha }}."
+            exit 0
+          fi
+          git commit -m "Sync upstream ${{ steps.src.outputs.sha }}"
+          git push
+          echo "### Synced upstream ${{ steps.src.outputs.sha }}. Run *Publish to drayspo.com* to put it live." >> "$GITHUB_STEP_SUMMARY"
