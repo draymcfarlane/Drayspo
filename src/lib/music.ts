@@ -45,6 +45,17 @@ export type NowPlaying = z.infer<typeof nowPlayingSchema>;
 export const NOW_PLAYING_MAX_AGE_MS = 15 * 60 * 1000;
 export const NOW_PLAYING_POLL_MS = 60 * 1000;
 
+/** Adds a unique time parameter so neither the browser nor a CDN can serve a cached feed. */
+export function nowPlayingFeedUrl(url: string, now = Date.now()): string {
+  try {
+    const target = new URL(url);
+    target.searchParams.set("t", String(now));
+    return target.toString();
+  } catch {
+    return url;
+  }
+}
+
 /** Remote data counts as playing only when flagged so and updated within the last 15 minutes. */
 export function liveNowPlaying(data: unknown, now = Date.now()): NowPlaying | null {
   const parsed = nowPlayingSchema.safeParse(data);
@@ -64,7 +75,7 @@ export function useNowPlaying(url: string, fallback: NowPlaying | null): NowPlay
     const load = async () => {
       controller?.abort(); controller = new AbortController();
       try {
-        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        const res = await fetch(nowPlayingFeedUrl(url), { cache: "no-store", signal: controller.signal });
         setRemote(res.ok ? liveNowPlaying(await res.json()) : null);
       } catch (error) {
         if ((error as Error).name !== "AbortError") setRemote(null);

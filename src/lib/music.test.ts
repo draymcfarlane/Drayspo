@@ -31,3 +31,22 @@ describe("now playing staleness", () => {
     expect(liveNowPlaying({ nope: 1 }, now)).toBeNull();
   });
 });
+
+import { nowPlayingFeedUrl } from "./music";
+describe("now playing feed requests", () => {
+  it("adds a time parameter that changes on every call", () => {
+    const first = nowPlayingFeedUrl("https://example.com/now.json", 1);
+    expect(new URL(first).searchParams.get("t")).toBe("1");
+    expect(first).not.toBe(nowPlayingFeedUrl("https://example.com/now.json", 2));
+  });
+  it("keeps existing query parameters and replaces a stale time parameter", () => {
+    const url = nowPlayingFeedUrl("https://example.com/now.json?t=1&user=dray", 500);
+    const params = new URL(url).searchParams;
+    expect(params.get("t")).toBe("500");
+    expect(params.get("user")).toBe("dray");
+    expect(new URL(url).searchParams.getAll("t")).toEqual(["500"]);
+  });
+  it("leaves an unusable feed address untouched", () => {
+    expect(nowPlayingFeedUrl("not a url")).toBe("not a url");
+  });
+});
