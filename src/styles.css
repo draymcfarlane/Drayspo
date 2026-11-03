@@ -428,3 +428,6 @@ html:not(.lq-ready) :is(.holo-wave,.holo-sheen,.holo-chip,.nav-bubble,.goo-indic
   .copy-action { height: auto; min-height: 3rem; padding-block: .65rem; }
 }
 @media (prefers-reduced-motion: reduce) { .copy-state { transition: none; } }
+
+/* Until the intro hands off, keep the page hidden (still laid out so the name handoff can measure it). */
+html:not(.lq-ready) body > :not(.intro-screen) { visibility: hidden; }

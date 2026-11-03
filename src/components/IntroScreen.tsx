@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useHydrated } from "@tanstack/react-router";
 import { useConfig } from "@/config/ConfigProvider";
 import { markAppReady, preloadTasks, useAppReady } from "@/lib/app-ready";
 import { INTRO_MAX_MS, INTRO_MIN_MS, preloadProgress } from "@/lib/liquid";
@@ -14,7 +13,6 @@ function decodeImage(url: string) {
 export function IntroScreen() {
   const { config, intensity } = useConfig();
   const ready = useAppReady();
-  const hydrated = useHydrated();
   const initial = useRef({ config, intensity });
   const root = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -94,7 +92,7 @@ export function IntroScreen() {
       timers.forEach(clearTimeout); animations.forEach((animation) => animation.cancel());
     };
   }, []);
-  if (hidden || !hydrated) return null;
+  if (hidden) return null;
   return <div ref={root} className="intro-screen" data-leaving={leaving} role="status" aria-label={`Loading ${Math.round(progress * 100)}%`}>
     <div className="intro-backdrop" />
     <div className="intro-content">
