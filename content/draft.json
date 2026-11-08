@@ -157,7 +157,20 @@
         ]
       }
     ],
-    "thoughts": [],
+    "thoughts": [
+      {
+        "id": "2026-11-08-ai-is-a-tool-not-a-shortcut",
+        "title": "AI is a tool, not a shortcut",
+        "date": "2026-11-08",
+        "excerpt": "AI speeds up how software gets built, but it still needs people who understand the code and check its work.",
+        "body": "AI is now part of how most software gets built. It writes first drafts of code, explains errors and handles the repetitive parts of the job. That leaves more time for the work that needs a person: understanding the problem, making design decisions and checking that the result is actually right.\n\nIt also has limits. AI can sound confident and still be wrong, it can’t take responsibility for what ships, and leaning on it too heavily can weaken the skills it’s meant to support. The developers who get the most from it read what it produces, question it, and still understand their own code.\n\nI don’t think AI replaces good engineering. It raises the bar for it.",
+        "tags": [
+          "AI",
+          "Software development"
+        ],
+        "readMinutes": 1
+      }
+    ],
     "music": {
       "playlistUrl": "https://music.apple.com/us/playlist/all-starjunk-95/pl.u-xlyNJ2XtkzWd03V",
       "playlistName": "All Starjunk 95",
